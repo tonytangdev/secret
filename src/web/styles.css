@@ -1,0 +1,210 @@
+/* Tokens copied from tonytang.dev (tonytangdev-v2/DESIGN.md + src/styles/global.css).
+   Copied, not shared, until the third tool (PRODUCT.md "Brand"). */
+
+/* Scan only src/web for class names (path is relative to this file). */
+@import "tailwindcss" source("./");
+
+/* ---------- self-hosted fonts: latin subset, wght axis only ---------- */
+@font-face {
+  font-family: "Bricolage Grotesque Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 800;
+  src: url("@fontsource-variable/bricolage-grotesque/files/bricolage-grotesque-latin-wght-normal.woff2")
+    format("woff2-variations");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Public Sans Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("@fontsource-variable/public-sans/files/public-sans-latin-wght-normal.woff2")
+    format("woff2-variations");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "JetBrains Mono Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 800;
+  src: url("@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2")
+    format("woff2-variations");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* ---------- design tokens ---------- */
+@theme {
+  /* Drop Tailwind's default palette: only brand colors exist. */
+  --color-*: initial;
+  --color-white: oklch(1 0 0);
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  /* brand constants (never flip: Non-Flip Rule) */
+  --color-teal: oklch(0.42 0.085 197);
+  --color-teal-deep: oklch(0.34 0.08 202);
+  --color-cream: oklch(0.96 0.025 95);
+  --color-pop: oklch(0.86 0.16 92);
+  --color-pop-ink: oklch(0.34 0.08 202);
+  --color-ink-fixed: oklch(0.17 0.022 200);
+
+  /* themed neutrals: light values; dark overrides below */
+  --color-bg: oklch(0.986 0.006 190);
+  --color-surface: oklch(1 0 0);
+  --color-surface-2: oklch(0.965 0.008 195);
+  --color-ink: oklch(0.22 0.028 200);
+  --color-ink-strong: oklch(0.16 0.03 200);
+  --color-muted: oklch(0.46 0.024 200);
+  --color-accent: oklch(0.47 0.1 196);
+  --color-accent-strong: oklch(0.4 0.1 197);
+  --color-line: oklch(0.88 0.012 195);
+  --color-line-strong: oklch(0.78 0.014 197);
+
+  /* fonts: font-sans is Tailwind's default body family */
+  --font-sans: "Public Sans Variable", "Public Sans", system-ui, -apple-system, sans-serif;
+  --font-display: "Bricolage Grotesque Variable", "Bricolage Grotesque", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
+
+  /* type scale (DESIGN.md typography) */
+  --text-display: clamp(3rem, 11vw, 8rem);
+  --text-display--line-height: 0.92;
+  --text-display--letter-spacing: -0.035em;
+  --text-display--font-weight: 800;
+  --text-headline: clamp(1.7rem, 4vw, 2.8rem);
+  --text-headline--line-height: 1.1;
+  --text-headline--letter-spacing: -0.02em;
+  --text-headline--font-weight: 700;
+  --text-title: 1.5rem;
+  --text-title--line-height: 1.15;
+  --text-title--letter-spacing: -0.01em;
+  --text-title--font-weight: 700;
+  --text-body: 1.13rem;
+  --text-body--line-height: 1.75;
+  --text-label: 0.78rem;
+  --text-label--line-height: 1.4;
+  --text-label--letter-spacing: 0.06em;
+  --text-label--font-weight: 500;
+
+  /* radii (override Tailwind's sm/md/lg/xl) */
+  --radius-sm: 7px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+
+  /* named spacing: p-xs, gap-md, py-section, ... */
+  --spacing-xs: 0.5rem;
+  --spacing-sm: 1rem;
+  --spacing-md: 1.4rem;
+  --spacing-lg: 2.4rem;
+  --spacing-section: clamp(3rem, 7vw, 5rem);
+
+  /* measure: max-w-measure (global.css uses 41rem; DESIGN.md says 44rem) */
+  --container-measure: 41rem;
+  --container-site: 82rem;
+
+  /* motion + the one hover shadow */
+  --ease-brand: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --shadow-lift: 0 12px 30px oklch(0.2 0.02 255 / 0.08);
+}
+
+/* Dark follows the system (no toggle, no inline no-flash script needed). */
+@layer base {
+  :root {
+    color-scheme: light;
+    --dur: 160ms;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --color-bg: oklch(0.17 0.018 200);
+      --color-surface: oklch(0.214 0.02 200);
+      --color-surface-2: oklch(0.25 0.022 200);
+      --color-ink: oklch(0.93 0.012 190);
+      --color-ink-strong: oklch(0.97 0.01 190);
+      --color-muted: oklch(0.69 0.018 195);
+      --color-accent: oklch(0.74 0.1 194);
+      --color-accent-strong: oklch(0.82 0.09 192);
+      --color-line: oklch(0.31 0.018 200);
+      --color-line-strong: oklch(0.4 0.02 200);
+    }
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  body {
+    background: var(--color-bg);
+    color: var(--color-ink);
+    font-size: 18px;
+    line-height: 1.6;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+    border-radius: 3px;
+  }
+}
+
+/* ---------- components (from global.css) ---------- */
+@utility btn {
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--color-pop);
+  color: var(--color-pop-ink);
+  padding: 0.9rem 1.7rem;
+  transition:
+    transform var(--dur) var(--ease-brand),
+    filter var(--dur) var(--ease-brand);
+  &:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.04);
+  }
+  &:active {
+    transform: translateY(0) scale(0.98);
+    filter: none;
+  }
+}
+@utility ghost {
+  font-size: 0.88rem;
+  text-decoration: none;
+  color: var(--color-ink);
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-md);
+  padding: 0.82rem 1.25rem;
+  transition:
+    border-color var(--dur) var(--ease-brand),
+    color var(--dur) var(--ease-brand);
+  &:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
