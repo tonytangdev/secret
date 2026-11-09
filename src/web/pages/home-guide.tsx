@@ -75,6 +75,10 @@ const FAQ: ReadonlyArray<readonly [string, ComponentChildren]> = [
       <a class="text-accent-strong underline" href="https://github.com/tonytangdev/secret">
         GitHub
       </a>
+      . If it helps you, you can{" "}
+      <a class="text-accent-strong underline" href="https://github.com/sponsors/tonytangdev">
+        support me on GitHub Sponsors
+      </a>
       .
     </>,
   ],

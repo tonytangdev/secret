@@ -20,7 +20,7 @@ The main page explains the security in three steps: _Encrypted in your browser â
 
 ## Not in v1
 
-Files, multi-read links, read receipts, sender-side delete, accounts, French, payments. Payment may come later as a shared "Support me" link across all apps, or as paid extras.
+Files, multi-read links, read receipts, sender-side delete, accounts, French, payments. The only payment is an optional "Support me" link to GitHub Sponsors, in the footer and the "Is it free?" answer. Paid extras may come later.
 
 ## Security promises (each must be true in code and backed by a test)
 

@@ -59,6 +59,9 @@ export const Layout = ({ children }: { readonly children: ComponentChildren }) =
           <a class="text-accent-strong underline" href="https://github.com/tonytangdev/secret">
             Source code
           </a>
+          <a class="text-accent-strong underline" href="https://github.com/sponsors/tonytangdev">
+            Support me
+          </a>
         </div>
       </footer>
     </div>
