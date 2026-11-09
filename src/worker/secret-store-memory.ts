@@ -1,5 +1,6 @@
-// In-memory SecretStore for tests. Ref.modify makes take's read-and-Burn one atomic step.
-import { Effect, Layer, Option, Ref } from "effect"
+// In-memory SecretStore for tests. Ref.modify makes take's read-and-Burn one atomic step. Expiry
+// is read from Effect's Clock, so TestClock drives it.
+import { Clock, Effect, Layer, Option, Ref } from "effect"
 import { SecretGone, type StoredSecret } from "../shared/api.ts"
 import { SecretStore, newSecretId } from "./secret-store.ts"
 
@@ -21,12 +22,13 @@ export const SecretStoreMemory: Layer.Layer<SecretStore> = Layer.effect(
         }),
       take: (id) =>
         Effect.gen(function* () {
+          const now = yield* Clock.currentTimeMillis
           const found = yield* Ref.modify(entries, (m) => {
             const next = new Map(m)
             next.delete(id)
             return [Option.fromNullishOr(m.get(id)), next] as const
           })
-          if (Option.isNone(found)) return yield* new SecretGone()
+          if (Option.isNone(found) || found.value.expiresAt <= now) return yield* new SecretGone()
           return found.value.secret
         }),
     })

@@ -1,5 +1,6 @@
 import { Result } from "effect"
 import { useState } from "preact/hooks"
+import { DEFAULT_EXPIRY, EXPIRY_LABEL, Expiry } from "../../shared/expiry.ts"
 import { type Link, linkPath } from "../../shared/link.ts"
 import { CopyButton } from "../copy-button.tsx"
 import { useRun } from "../run.ts"
@@ -8,7 +9,12 @@ import { sendSecret } from "../secret-flow.ts"
 type State =
   | { readonly step: "editing"; readonly failed: boolean }
   | { readonly step: "creating" }
-  | { readonly step: "created"; readonly url: string; readonly hasPassphrase: boolean }
+  | {
+      readonly step: "created"
+      readonly url: string
+      readonly expiry: Expiry
+      readonly hasPassphrase: boolean
+    }
 
 const linkUrl = (link: Link) => `${location.origin}${linkPath(link)}`
 
@@ -17,11 +23,12 @@ export const Home = () => {
   const [state, setState] = useState<State>({ step: "editing", failed: false })
   const [plaintext, setPlaintext] = useState("")
   const [passphrase, setPassphrase] = useState("")
+  const [expiry, setExpiry] = useState<Expiry>(DEFAULT_EXPIRY)
 
   const create = async (event: Event) => {
     event.preventDefault()
     setState({ step: "creating" })
-    const options = passphrase === "" ? {} : { passphrase }
+    const options = passphrase === "" ? { expiry } : { expiry, passphrase }
     const result = await run(sendSecret(plaintext, options)).catch(() => Result.fail(undefined))
     if (Result.isSuccess(result)) {
       setPlaintext("")
@@ -29,6 +36,7 @@ export const Home = () => {
       setState({
         step: "created",
         url: linkUrl(result.success),
+        expiry,
         hasPassphrase: result.success.hasPassphrase,
       })
     } else {
@@ -47,6 +55,7 @@ export const Home = () => {
       {state.step === "created" ? (
         <Created
           url={state.url}
+          expiry={state.expiry}
           hasPassphrase={state.hasPassphrase}
           onAnother={() => {
             setState({ step: "editing", failed: false })
@@ -74,6 +83,7 @@ export const Home = () => {
             }}
             class="block w-full rounded-md border border-line-strong bg-surface p-sm font-mono text-ink"
           />
+          <ExpiryPicker value={expiry} onChange={setExpiry} />
           <PassphraseField value={passphrase} onInput={setPassphrase} />
           {state.step === "editing" && state.failed ? (
             <p role="alert" class="text-body text-ink">
@@ -118,12 +128,40 @@ const PassphraseField = ({
   </div>
 )
 
+const ExpiryPicker = ({
+  value,
+  onChange,
+}: {
+  readonly value: Expiry
+  readonly onChange: (expiry: Expiry) => void
+}) => (
+  <fieldset class="flex flex-wrap items-center gap-sm">
+    <legend class="mb-xs font-mono text-label uppercase text-muted">Expires if unopened in</legend>
+    {Expiry.literals.map((option) => (
+      <label key={option} class="flex items-center gap-xs text-body text-ink">
+        <input
+          type="radio"
+          name="expiry"
+          value={option}
+          checked={value === option}
+          onChange={() => {
+            onChange(option)
+          }}
+        />
+        {EXPIRY_LABEL[option]}
+      </label>
+    ))}
+  </fieldset>
+)
+
 const Created = ({
   url,
+  expiry,
   hasPassphrase,
   onAnother,
 }: {
   readonly url: string
+  readonly expiry: Expiry
   readonly hasPassphrase: boolean
   readonly onAnother: () => void
 }) => (
@@ -141,7 +179,7 @@ const Created = ({
       class="block w-full rounded-md border border-line-strong bg-surface p-sm font-mono text-ink"
     />
     <p class="text-body text-muted">
-      It works once, then the secret is gone. Unopened, it expires in 1 day.
+      It works once, then the secret is gone. Unopened, it expires in {EXPIRY_LABEL[expiry]}.
     </p>
     <p class="text-body text-muted">
       {hasPassphrase

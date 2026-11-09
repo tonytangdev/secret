@@ -13,7 +13,7 @@ One package, three folders:
 
 Build and run: `npm run dev` (Vite + Worker in workerd), `npm run build` (writes `dist/client` and `dist/secret`), `npm run preview` (the build in workerd). Cloudflare sends only `/api/*` to the Worker (`run_worker_first`); everything else is a static asset with SPA fallback. Asset headers come from `_headers`, which `vite.config.ts` generates from `SECURITY_HEADERS` in `src/shared/security-headers.ts`, so change headers there. Merges to `main` deploy via CI (`wrangler deploy`); never deploy by hand.
 
-Each folder is its own TypeScript program (`tsconfig.{shared,worker,web,tools}.json`). Tests (`*.test.ts`) belong to the tools program.
+Each folder is its own TypeScript program (`tsconfig.{shared,worker,web,tools}.json`). Tests (`*.test.ts`) belong to the tools program and run in Node; `*.workers.test.ts` run inside workerd (Cloudflare Vitest pool, real Durable Objects) and have their own program (`tsconfig.workers-test.json`), which may import `cloudflare:*`.
 
 ## Rules
 

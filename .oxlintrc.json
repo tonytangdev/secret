@@ -306,7 +306,7 @@
       }
     },
     {
-      "files": ["src/worker/durable-object.ts"],
+      "files": ["src/worker/durable-object.ts", "src/**/*.workers.test.ts"],
       "rules": {
         "eslint/no-restricted-imports": [
           "error",

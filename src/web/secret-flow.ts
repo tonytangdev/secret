@@ -3,9 +3,12 @@ import { Effect } from "effect"
 import type { Link } from "../shared/link.ts"
 import { SecretCrypto } from "../shared/crypto.ts"
 import type { StoredSecret } from "../shared/api.ts"
+import { DEFAULT_EXPIRY, type Expiry } from "../shared/expiry.ts"
 import { ApiClient } from "./api-client.ts"
 
 export interface SendOptions {
+  /** How long the Secret waits unopened before it Burns; defaults to `DEFAULT_EXPIRY`. */
+  readonly expiry?: Expiry
   /** Shared through another channel; needed together with the Link key. */
   readonly passphrase?: string
 }
@@ -20,7 +23,7 @@ export const sendSecret = Effect.fn("sendSecret")(function* (
   const { linkKey, ...stored } = yield* secretCrypto.encrypt(plaintext, options.passphrase)
   const hasPassphrase = options.passphrase !== undefined
   const { id } = yield* api.secrets.create({
-    payload: { ...stored, hasPassphrase, expiry: "1d" },
+    payload: { ...stored, hasPassphrase, expiry: options.expiry ?? DEFAULT_EXPIRY },
   })
   const link: Link = { id, linkKey, hasPassphrase }
   return link

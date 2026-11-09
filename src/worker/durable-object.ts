@@ -1,7 +1,8 @@
 // The only module allowed to use Cloudflare runtime types (see AGENTS.md).
 // One SecretObject per Secret, named by its ID (ADR-0002). SQLite-backed, so `ctx.storage.kv` is
 // synchronous: `take` reads and deletes with no `await` in between, so no other request can
-// interleave and at most one Reveal ever gets the Secret.
+// interleave and at most one Reveal ever gets the Secret. An alarm at the Expiry Burns an
+// unrevealed Secret; until it fires, `take` treats a past-Expiry record as gone.
 import { DurableObject, env } from "cloudflare:workers"
 import { Effect, Layer } from "effect"
 import { SecretGone, type StoredSecret } from "../shared/api.ts"
@@ -15,15 +16,21 @@ interface Entry {
 const KEY = "secret"
 
 export class SecretObject extends DurableObject {
-  put(entry: Entry): void {
+  put(entry: Entry): Promise<void> {
     this.ctx.storage.kv.put(KEY, entry)
+    return this.ctx.storage.setAlarm(entry.expiresAt)
   }
 
   take(): StoredSecret | null {
     const entry = this.ctx.storage.kv.get<Entry>(KEY)
     if (entry === undefined) return null
     this.ctx.storage.kv.delete(KEY)
-    return entry.secret
+    return entry.expiresAt <= Date.now() ? null : entry.secret
+  }
+
+  /** The Expiry passed unrevealed: Burn. `deleteAll` clears the alarm too. */
+  override alarm(): Promise<void> {
+    return this.ctx.storage.deleteAll()
   }
 }
 
