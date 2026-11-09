@@ -1,6 +1,11 @@
 {
   "extends": "./tsconfig.base.json",
-  "compilerOptions": { "types": ["node"] },
+  "compilerOptions": {
+    "lib": ["es2024", "dom", "dom.iterable"],
+    "types": ["node"],
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact"
+  },
   "include": ["*.config.ts", "src/**/*.test.ts", "src/testing"],
   "exclude": ["src/**/*.workers.test.ts"]
 }

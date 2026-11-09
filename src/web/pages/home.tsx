@@ -83,6 +83,11 @@ export const Home = () => {
         <li>2 · Key never leaves the link</li>
         <li>3 · Deleted after one read</li>
       </ol>
+      <p class="mt-xs text-body text-muted">
+        <a class="text-accent-strong underline" href="/how-it-works">
+          How it works, and what it can't protect
+        </a>
+      </p>
       {state.step === "created" ? (
         <Created
           url={state.url}
