@@ -1,0 +1,19 @@
+# Pre-commit quality gate. Whole-project checks are cheap enough to run every commit.
+pre-commit:
+  parallel: true
+  jobs:
+    - name: typecheck
+      run: npm run --silent typecheck
+    - name: lint
+      glob: "*.{ts,tsx,js,mjs}"
+      run: npx effect-tsgo oxlint --type-aware --deny-warnings --report-unused-disable-directives-severity=error {staged_files}
+    - name: disable-reasons
+      glob: "*.{ts,tsx,js,mjs}"
+      run: node tools/check-disable-reasons.mjs {staged_files}
+    - name: format
+      glob: "*.{ts,tsx,js,mjs,json,jsonc,md,yml,yaml,css,html}"
+      run: npx oxfmt --check --no-error-on-unmatched-pattern {staged_files}
+    - name: test
+      run: npm run --silent test
+    - name: knip
+      run: npm run --silent knip

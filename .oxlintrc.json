@@ -1,0 +1,355 @@
+{
+  "$schema": "./node_modules/@effect/tsgo/oxlint-schema.json",
+  "extends": ["./node_modules/@effect/tsgo/oxlint-presets/strict.json"],
+  "plugins": ["eslint", "typescript", "unicorn", "oxc", "import"],
+  "jsPlugins": ["./tools/oxlint-plugin/index.js"],
+  "categories": {
+    "correctness": "error"
+  },
+  "options": {
+    "typeAware": true,
+    "denyWarnings": true,
+    "reportUnusedDisableDirectives": "error"
+  },
+  "env": {
+    "browser": false,
+    "es2024": true
+  },
+  "ignorePatterns": ["dist/**", "worker-configuration.d.ts"],
+  "rules": {
+    "typescript/await-thenable": "error",
+    "typescript/ban-ts-comment": [
+      "error",
+      {
+        "minimumDescriptionLength": 10
+      }
+    ],
+    "eslint/no-array-constructor": "error",
+    "typescript/no-array-delete": "error",
+    "typescript/no-base-to-string": "error",
+    "typescript/no-confusing-void-expression": "error",
+    "typescript/no-deprecated": "error",
+    "typescript/no-duplicate-enum-values": "error",
+    "typescript/no-duplicate-type-constituents": "error",
+    "typescript/no-dynamic-delete": "error",
+    "typescript/no-empty-object-type": "error",
+    "typescript/no-explicit-any": "error",
+    "typescript/no-extra-non-null-assertion": "error",
+    "typescript/no-extraneous-class": "error",
+    "typescript/no-floating-promises": "error",
+    "typescript/no-for-in-array": "error",
+    "typescript/no-generated-empty-object-type": "error",
+    "typescript/no-implied-eval": "error",
+    "typescript/no-invalid-void-type": "error",
+    "typescript/no-meaningless-void-operator": "error",
+    "typescript/no-misused-new": "error",
+    "typescript/no-misused-promises": "error",
+    "typescript/no-misused-spread": "error",
+    "typescript/no-mixed-enums": "error",
+    "typescript/no-namespace": "error",
+    "typescript/no-non-null-asserted-nullish-coalescing": "error",
+    "typescript/no-non-null-asserted-optional-chain": "error",
+    "typescript/no-non-null-assertion": "error",
+    "typescript/no-redundant-type-constituents": "error",
+    "typescript/no-require-imports": "error",
+    "typescript/no-this-alias": "error",
+    "typescript/no-unnecessary-boolean-literal-compare": "error",
+    "typescript/no-unnecessary-condition": "error",
+    "typescript/no-unnecessary-template-expression": "error",
+    "typescript/no-unnecessary-type-arguments": "error",
+    "typescript/no-unnecessary-type-assertion": "error",
+    "typescript/no-unnecessary-type-constraint": "error",
+    "typescript/no-unnecessary-type-conversion": "error",
+    "typescript/no-unnecessary-type-parameters": "error",
+    "typescript/no-unsafe-argument": "error",
+    "typescript/no-unsafe-assignment": "error",
+    "typescript/no-unsafe-call": "error",
+    "typescript/no-unsafe-declaration-merging": "error",
+    "typescript/no-unsafe-enum-assignment": "error",
+    "typescript/no-unsafe-enum-comparison": "error",
+    "typescript/no-unsafe-function-type": "error",
+    "typescript/no-unsafe-member-access": "error",
+    "typescript/no-unsafe-return": "error",
+    "typescript/no-unsafe-unary-minus": "error",
+    "eslint/no-unused-expressions": "error",
+    "eslint/no-unused-vars": "error",
+    "eslint/no-useless-constructor": "error",
+    "typescript/no-useless-default-assignment": "error",
+    "typescript/no-wrapper-object-types": "error",
+    "typescript/only-throw-error": "error",
+    "typescript/prefer-as-const": "error",
+    "typescript/prefer-literal-enum-member": "error",
+    "typescript/prefer-namespace-keyword": "error",
+    "typescript/prefer-promise-reject-errors": "error",
+    "typescript/prefer-reduce-type-parameter": "error",
+    "typescript/prefer-return-this-type": "error",
+    "typescript/related-getter-setter-pairs": "error",
+    "typescript/require-await": "error",
+    "typescript/restrict-plus-operands": [
+      "error",
+      {
+        "allowAny": false,
+        "allowBoolean": false,
+        "allowNullish": false,
+        "allowNumberAndString": false,
+        "allowRegExp": false
+      }
+    ],
+    "typescript/restrict-template-expressions": [
+      "error",
+      {
+        "allowAny": false,
+        "allowBoolean": false,
+        "allowNever": false,
+        "allowNullish": false,
+        "allowNumber": false,
+        "allowRegExp": false
+      }
+    ],
+    "typescript/return-await": ["error", "error-handling-correctness-only"],
+    "typescript/triple-slash-reference": "error",
+    "typescript/unbound-method": "error",
+    "typescript/unified-signatures": "error",
+    "typescript/use-unknown-in-catch-callback-variable": "error",
+    "typescript/switch-exhaustiveness-check": "error",
+    "eslint/eqeqeq": ["error", "always"],
+    "eslint/no-nested-ternary": "error",
+    "unicorn/no-nested-ternary": "off",
+    "eslint/no-console": "error",
+    "eslint/max-lines": [
+      "error",
+      {
+        "max": 300,
+        "skipBlankLines": false,
+        "skipComments": false
+      }
+    ],
+    "eslint/max-depth": [
+      "error",
+      {
+        "max": 3
+      }
+    ],
+    "eslint/no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "cloudflare:workers",
+            "message": "Only src/worker/durable-object.ts may import cloudflare:workers"
+          }
+        ]
+      }
+    ],
+    "secret/require-disable-reason": "error"
+  },
+  "overrides": [
+    {
+      "files": ["tools/**", "*.config.ts"],
+      "rules": {
+        "typescript/no-unsafe-argument": "off",
+        "typescript/no-unsafe-assignment": "off",
+        "typescript/no-unsafe-call": "off",
+        "typescript/no-unsafe-member-access": "off",
+        "typescript/no-unsafe-return": "off",
+        "eslint/no-console": "off",
+        "typescript/restrict-template-expressions": "off",
+        "typescript/restrict-plus-operands": "off"
+      }
+    },
+    {
+      "files": ["src/shared/**"],
+      "rules": {
+        "typescript/no-explicit-any": "error",
+        "typescript/consistent-type-assertions": [
+          "error",
+          {
+            "assertionStyle": "never"
+          }
+        ],
+        "eslint/no-restricted-properties": [
+          "error",
+          {
+            "object": "JSON",
+            "property": "parse",
+            "message": "Use Schema.fromJsonString / Schema.decodeUnknown instead of JSON.parse"
+          }
+        ],
+        "secret/no-async": "error",
+        "secret/no-await": "error",
+        "secret/no-try-catch": "error",
+        "secret/no-throw": "error",
+        "secret/no-new-promise": "error",
+        "secret/no-effect-run": "error",
+        "eslint/no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "cloudflare:workers",
+                "message": "Cloudflare runtime only in src/worker/durable-object.ts"
+              }
+            ],
+            "patterns": [
+              {
+                "group": ["**/worker/**", "**/worker", "**/web/**", "**/web"],
+                "message": "src/shared must not import from src/worker or src/web"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/worker/**"],
+      "rules": {
+        "typescript/no-explicit-any": "error",
+        "typescript/consistent-type-assertions": [
+          "error",
+          {
+            "assertionStyle": "never"
+          }
+        ],
+        "eslint/no-restricted-properties": [
+          "error",
+          {
+            "object": "JSON",
+            "property": "parse",
+            "message": "Use Schema.fromJsonString / Schema.decodeUnknown instead of JSON.parse"
+          }
+        ],
+        "secret/no-async": "error",
+        "secret/no-await": "error",
+        "secret/no-try-catch": "error",
+        "secret/no-throw": "error",
+        "secret/no-new-promise": "error",
+        "secret/no-effect-run": "error",
+        "eslint/no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "cloudflare:workers",
+                "message": "Cloudflare runtime only in src/worker/durable-object.ts"
+              }
+            ],
+            "patterns": [
+              {
+                "group": ["**/web/**", "**/web"],
+                "message": "src/worker must not import from src/web"
+              }
+            ]
+          }
+        ],
+        "typescript/no-restricted-types": [
+          "error",
+          {
+            "types": {
+              "DurableObjectState": {
+                "message": "Cloudflare runtime types only in src/worker/durable-object.ts"
+              },
+              "DurableObjectStorage": {
+                "message": "Cloudflare runtime types only in src/worker/durable-object.ts"
+              },
+              "DurableObjectNamespace": {
+                "message": "Cloudflare runtime types only in src/worker/durable-object.ts"
+              },
+              "DurableObjectStub": {
+                "message": "Cloudflare runtime types only in src/worker/durable-object.ts"
+              },
+              "DurableObjectId": {
+                "message": "Cloudflare runtime types only in src/worker/durable-object.ts"
+              },
+              "ExecutionContext": {
+                "message": "Cloudflare runtime types only in src/worker/durable-object.ts"
+              },
+              "ExportedHandler": {
+                "message": "Cloudflare runtime types only in src/worker/durable-object.ts"
+              },
+              "IncomingRequestCfProperties": {
+                "message": "Cloudflare runtime types only in src/worker/durable-object.ts"
+              },
+              "Fetcher": {
+                "message": "Cloudflare runtime types only in src/worker/durable-object.ts"
+              },
+              "KVNamespace": {
+                "message": "Cloudflare runtime types only in src/worker/durable-object.ts"
+              },
+              "Cloudflare": {
+                "message": "Cloudflare runtime types only in src/worker/durable-object.ts"
+              },
+              "Rpc": {
+                "message": "Cloudflare runtime types only in src/worker/durable-object.ts"
+              }
+            }
+          }
+        ],
+        "eslint/no-restricted-globals": [
+          "error",
+          {
+            "name": "caches",
+            "message": "Cloudflare runtime types only in src/worker/durable-object.ts"
+          },
+          {
+            "name": "HTMLRewriter",
+            "message": "Cloudflare runtime types only in src/worker/durable-object.ts"
+          },
+          {
+            "name": "WebSocketPair",
+            "message": "Cloudflare runtime types only in src/worker/durable-object.ts"
+          },
+          {
+            "name": "scheduler",
+            "message": "Cloudflare runtime types only in src/worker/durable-object.ts"
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/worker/durable-object.ts"],
+      "rules": {
+        "eslint/no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["**/web/**", "**/web"],
+                "message": "src/worker must not import from src/web"
+              }
+            ]
+          }
+        ],
+        "typescript/no-restricted-types": "off",
+        "eslint/no-restricted-globals": "off"
+      }
+    },
+    {
+      "files": ["src/web/**"],
+      "rules": {
+        "eslint/no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "cloudflare:workers",
+                "message": "Cloudflare runtime only in src/worker/durable-object.ts"
+              }
+            ],
+            "patterns": [
+              {
+                "group": ["**/worker/**", "**/worker"],
+                "message": "src/web must not import from src/worker"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/worker/index.ts", "src/web/main.ts", "src/web/main.tsx"],
+      "rules": {
+        "secret/no-effect-run": "off"
+      }
+    }
+  ]
+}
