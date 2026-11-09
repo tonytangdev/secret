@@ -16,7 +16,7 @@ Primary: Tony. Secondary: anyone who lands on it. No accounts, no sign-up.
 - **Gone:** one message for "doesn't exist, already viewed, or expired", plus "If you didn't open it, tell the sender — someone else may have."
 - **`/how-it-works`:** what is and isn't protected, how the encryption works, a link to the source.
 
-The main page explains the security in three steps: *Encrypted in your browser → Key never leaves the link → Deleted after one read.*
+The main page explains the security in three steps: _Encrypted in your browser → Key never leaves the link → Deleted after one read._
 
 ## Not in v1
 
