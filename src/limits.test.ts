@@ -1,11 +1,12 @@
 // Abuse limits (#7) through the in-process harness: the size cap in the browser and on the
 // server, and the per-IP creation limit.
+import { createHmac } from "node:crypto"
 import { assert, describe, it } from "@effect/vitest"
-import { Effect } from "effect"
+import { Effect, Layer } from "effect"
 import { TestClock } from "effect/testing"
 import { MAX_CIPHERTEXT_LENGTH, MAX_SECRET_BYTES } from "./shared/limits.ts"
-import { Harness } from "./testing/harness.ts"
-import { CreateRateLimitMemory } from "./worker/create-rate-limit.ts"
+import { Harness, TEST_IP_HASH_KEY } from "./testing/harness.ts"
+import { CreateRateLimit, CreateRateLimitMemory } from "./worker/create-rate-limit.ts"
 import { ApiClient } from "./web/api-client.ts"
 import { revealSecret, sendSecret } from "./web/secret-flow.ts"
 
@@ -160,4 +161,30 @@ describe("the server stores only what the browser would send", () => {
       assert.deepStrictEqual(JSON.parse(res.text), { _tag: "MalformedSecret" })
     }).pipe(Effect.provide(Harness.layer())),
   )
+})
+
+describe("how the rate limit knows a client", () => {
+  it.effect("by HMAC-SHA256 of the IP under IP_HASH_KEY, never the IP or a plain hash", () => {
+    const seen: Array<string> = []
+    const recording = Layer.succeed(
+      CreateRateLimit,
+      CreateRateLimit.of({ admit: (key) => Effect.sync(() => seen.push(key) > 0) }),
+    )
+    return Effect.gen(function* () {
+      yield* (yield* Harness).fetch("/api/secrets", {
+        method: "POST",
+        headers: { "content-type": "application/json", "cf-connecting-ip": "192.0.2.1" },
+        body: JSON.stringify({
+          ciphertext: "Y2lwaGVy",
+          iv: "aXZpdml2aXZpdml2",
+          hasPassphrase: false,
+          expiry: "1d",
+        }),
+      })
+      const expected = createHmac("sha256", TEST_IP_HASH_KEY)
+        .update("192.0.2.1")
+        .digest("base64url")
+      assert.deepStrictEqual(seen, [expected])
+    }).pipe(Effect.provide(Harness.layer({ rateLimit: recording })))
+  })
 })

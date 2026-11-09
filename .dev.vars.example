@@ -1,0 +1,6 @@
+# Local Worker secrets for `npm run dev` / `npm run preview`. Copy to `.dev.vars` (git-ignored).
+# Production: `wrangler secret put IP_HASH_KEY` before the first deploy (see AGENTS.md).
+
+# HMAC key for client IPs in the creation rate limit. Any long random string, e.g.
+# `openssl rand -base64 32`. Without it, creating a Secret fails.
+IP_HASH_KEY=dev-only-not-a-real-key

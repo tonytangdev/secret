@@ -14,7 +14,13 @@ export default defineConfig({
         },
       },
       {
-        plugins: [cloudflareTest({ wrangler: { configPath: "./wrangler.jsonc" } })],
+        plugins: [
+          cloudflareTest({
+            wrangler: { configPath: "./wrangler.jsonc" },
+            // A test value for the Worker secret (production: `wrangler secret put IP_HASH_KEY`).
+            miniflare: { bindings: { IP_HASH_KEY: "workers-test-ip-hash-key" } },
+          }),
+        ],
         test: { name: "workers", include: ["src/**/*.workers.test.ts"] },
       },
     ],

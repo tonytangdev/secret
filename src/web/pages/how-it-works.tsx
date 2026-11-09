@@ -173,9 +173,9 @@ export const HowItWorks = () => (
         </li>
         <li>
           <strong>A rate limit.</strong> 20 Secrets per hour per IP address. To count them, I keep a
-          SHA-256 hash of your IP and a count, and delete both when the hour is up. The hash isn't
-          salted, so someone with my storage could recover an IP by hashing every possible one.
-          That's why it lives for an hour at most.
+          HMAC-SHA256 of your IP, keyed with a secret only my Worker holds, and a count, and delete
+          both when the hour is up. Without that secret, nobody with my storage can turn the hash
+          back into an IP by hashing every possible one.
         </li>
         <li>
           <strong>A size cap.</strong> Up to 10 KB of text, checked in your browser before

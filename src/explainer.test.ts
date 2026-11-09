@@ -64,6 +64,7 @@ describe("/how-it-works", () => {
     "600,000",
     "PBKDF2",
     "HKDF",
+    "HMAC-SHA256",
     "1 hour",
     "1 day",
     "7 days",

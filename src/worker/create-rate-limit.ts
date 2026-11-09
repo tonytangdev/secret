@@ -1,7 +1,8 @@
 // CreateRateLimit: about 20 creations per hour per client. Cloudflare's rate-limiting binding only
 // counts per 10 s or 60 s (spec amendment 1), so this is a fixed one-hour window per client,
-// counted in memory (tests) or in a Durable Object (production). Clients are known only by a hash
-// of their IP; the raw IP is never stored.
+// counted in memory (tests) or in a Durable Object (production). Clients are known only by an
+// HMAC of their IP under the IP_HASH_KEY Worker secret; the raw IP is never stored, and without
+// the secret the hash can't be reversed by hashing every possible IP.
 import { Clock, Context, Effect, Layer, Ref } from "effect"
 import { Base64Url } from "effect/encoding"
 
@@ -34,11 +35,34 @@ export class CreateRateLimit extends Context.Service<
   }
 >()("CreateRateLimit") {}
 
-/** SHA-256 of the client's IP, base64url: the only form in which a client is known. */
-export const clientKey = (ip: string): Effect.Effect<string> =>
-  Effect.promise(() =>
-    crypto.subtle.digest("SHA-256", new TextEncoder().encode(`secret-create:${ip}`)),
-  ).pipe(Effect.map((digest) => Base64Url.encode(new Uint8Array(digest))))
+/** The only form in which a client is known: HMAC-SHA256(IP_HASH_KEY, IP), base64url. */
+export class ClientKey extends Context.Service<
+  ClientKey,
+  { readonly of: (ip: string) => Effect.Effect<string> }
+>()("ClientKey") {
+  /** Keys clients with `ipHashKey`, the IP_HASH_KEY Worker secret (or a test value). */
+  static readonly hmac = (ipHashKey: string): Layer.Layer<ClientKey> =>
+    Layer.effect(
+      ClientKey,
+      Effect.gen(function* () {
+        const key = yield* Effect.promise(() =>
+          crypto.subtle.importKey(
+            "raw",
+            new TextEncoder().encode(ipHashKey),
+            { name: "HMAC", hash: "SHA-256" },
+            false,
+            ["sign"],
+          ),
+        )
+        return ClientKey.of({
+          of: (ip) =>
+            Effect.promise(() =>
+              crypto.subtle.sign("HMAC", key, new TextEncoder().encode(ip)),
+            ).pipe(Effect.map((mac) => Base64Url.encode(new Uint8Array(mac)))),
+        })
+      }),
+    )
+}
 
 /** In-memory CreateRateLimit, driven by Effect's Clock. */
 export const CreateRateLimitMemory = (

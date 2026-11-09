@@ -19,6 +19,12 @@ class App extends Context.Service<
 
 const AppPreview = Layer.effect(App)(
   Effect.gen(function* () {
+    // Wrangler passes these process variables to the Worker as bindings: a test IP_HASH_KEY
+    // (production: `wrangler secret put IP_HASH_KEY`; local dev: `.dev.vars`).
+    yield* Effect.sync(() => {
+      process.env["CLOUDFLARE_INCLUDE_PROCESS_ENV"] = "true"
+      process.env["IP_HASH_KEY"] ??= "built-app-test-ip-hash-key"
+    })
     const server = yield* Effect.acquireRelease(
       Effect.promise(() => preview({ preview: { port: 0 }, logLevel: "silent" })),
       (s) => Effect.promise(() => s.close()),

@@ -8,6 +8,7 @@ import { DurableObject, env } from "cloudflare:workers"
 import { Clock, Effect, Layer } from "effect"
 import { SecretGone, type StoredSecret } from "../shared/api.ts"
 import {
+  ClientKey,
   CreateRateLimit,
   CREATES_PER_HOUR,
   type QuotaWindow,
@@ -75,6 +76,8 @@ declare global {
       readonly SECRETS: DurableObjectNamespace<SecretObject>
       readonly CREATE_QUOTA: DurableObjectNamespace<CreateQuota>
       readonly USAGE: AnalyticsEngineDataset
+      /** HMAC key for client IPs: `wrangler secret put IP_HASH_KEY` (`.dev.vars` locally). */
+      readonly IP_HASH_KEY?: string
     }
   }
 }
@@ -116,4 +119,18 @@ export const CreateRateLimitDurableObject: Layer.Layer<CreateRateLimit> = Layer.
         )
       }),
   }),
+)
+
+const IpHashKeyMissing = Layer.succeed(
+  ClientKey,
+  ClientKey.of({ of: () => Effect.die(new Error("IP_HASH_KEY is not set")) }),
+)
+
+/** ClientKey under the IP_HASH_KEY secret. If it's unset, creating a Secret fails: no fallback. */
+export const ClientKeyFromEnv: Layer.Layer<ClientKey> = Layer.unwrap(
+  Effect.sync(() =>
+    env.IP_HASH_KEY === undefined || env.IP_HASH_KEY === ""
+      ? IpHashKeyMissing
+      : ClientKey.hmac(env.IP_HASH_KEY),
+  ),
 )

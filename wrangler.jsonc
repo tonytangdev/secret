@@ -23,6 +23,9 @@
   ],
   // Usage counts (ADR-0005): created / revealed / expired, nothing else.
   "analytics_engine_datasets": [{ "binding": "USAGE", "dataset": "secret_usage" }],
+  // HMAC key for client IPs (rate limit). Set with `wrangler secret put IP_HASH_KEY`; locally in
+  // `.dev.vars` (see `.dev.vars.example`).
+  "secrets": { "required": ["IP_HASH_KEY"] },
   "routes": [{ "pattern": "secret.tonytang.dev", "custom_domain": true }],
   "workers_dev": false,
   "preview_urls": false,
