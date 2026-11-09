@@ -13,6 +13,8 @@ One package, three folders:
 
 Build and run: `npm run dev` (Vite + Worker in workerd), `npm run build` (writes `dist/client` and `dist/secret`), `npm run preview` (the build in workerd). Cloudflare sends only `/api/*` to the Worker (`run_worker_first`); everything else is a static asset with SPA fallback. Asset headers come from `_headers`, which `vite.config.ts` generates from `SECURITY_HEADERS` in `src/shared/security-headers.ts`, so change headers there. Merges to `main` deploy via CI (`wrangler deploy`); never deploy by hand.
 
+Worker secrets: `IP_HASH_KEY`, the HMAC key that turns client IPs into rate-limit keys. Before the first deploy, set it once with `wrangler secret put IP_HASH_KEY` (a long random value, e.g. `openssl rand -base64 32`); without it, creating a Secret fails. Locally, copy `.dev.vars.example` to `.dev.vars`. Tests set their own value. Read it only in `src/worker/durable-object.ts` (`ClientKeyFromEnv`).
+
 Each folder is its own TypeScript program (`tsconfig.{shared,worker,web,tools}.json`). Tests (`*.test.ts`) belong to the tools program and run in Node; `*.workers.test.ts` run inside workerd (Cloudflare Vitest pool, real Durable Objects) and have their own program (`tsconfig.workers-test.json`), which may import `cloudflare:*`.
 
 ## Rules

@@ -2,6 +2,7 @@
 // client) talks to the Worker's API handler in the same process, with the in-memory SecretStore.
 import { assert, describe, it } from "@effect/vitest"
 import { Effect, Result } from "effect"
+import { LinkKey } from "./shared/crypto.ts"
 import { linkPath, parseLink } from "./shared/link.ts"
 import { revealSecret, sendSecret, takeSecret, unlockSecret } from "./web/secret-flow.ts"
 import { Harness } from "./testing/harness.ts"
@@ -41,7 +42,7 @@ describe("send → Reveal", () => {
     Effect.gen(function* () {
       const link = yield* sendSecret("x")
       const flipped = (link.linkKey.startsWith("A") ? "B" : "A") + link.linkKey.slice(1)
-      const failure = yield* Effect.flip(revealSecret({ ...link, linkKey: flipped }))
+      const failure = yield* Effect.flip(revealSecret({ ...link, linkKey: LinkKey.make(flipped) }))
       assert.strictEqual(failure._tag, "DecryptionFailed")
     }).pipe(Effect.provide(Harness.layer())),
   )
@@ -101,9 +102,9 @@ describe("with a Passphrase", () => {
     Effect.gen(function* () {
       const link = yield* sendSecret("behind a door", { passphrase: "open sesame" })
       const taken = yield* takeSecret(link)
-      const wrong = yield* Effect.flip(unlockSecret(taken, link, "open sesam"))
+      const wrong = yield* Effect.flip(unlockSecret(taken, "open sesam"))
       assert.strictEqual(wrong._tag, "WrongPassphrase")
-      assert.strictEqual(yield* unlockSecret(taken, link, "open sesame"), "behind a door")
+      assert.strictEqual(yield* unlockSecret(taken, "open sesame"), "behind a door")
       const requests = yield* (yield* Harness).requests
       assert.strictEqual(requests.filter((r) => r.url.endsWith("/reveal")).length, 1)
     }).pipe(Effect.provide(Harness.layer())),

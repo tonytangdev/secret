@@ -7,34 +7,25 @@
 import { DurableObject, env } from "cloudflare:workers"
 import { Clock, Effect, Layer } from "effect"
 import { SecretGone, type StoredSecret } from "../shared/api.ts"
-import {
-  CreateRateLimit,
-  CREATES_PER_HOUR,
-  type QuotaWindow,
-  WINDOW_MILLIS,
-  countCreation,
-} from "./create-rate-limit.ts"
-import { SecretStore, newSecretId } from "./secret-store.ts"
+import { HOUR } from "../shared/expiry.ts"
+import { CREATES_PER_HOUR } from "../shared/limits.ts"
+import { ClientKey, CreateRateLimit, type QuotaWindow, countCreation } from "./create-rate-limit.ts"
+import { type Entry, SecretStore, newSecretId } from "./secret-store.ts"
 import { Usage, usageDataPoint } from "./usage.ts"
 
-interface Entry {
-  readonly secret: StoredSecret
-  readonly expiresAt: number
-}
-
-const KEY = "secret"
+const ENTRY_KEY = "secret"
 const QUOTA_KEY = "window"
 
 export class SecretObject extends DurableObject {
   put(entry: Entry): Promise<void> {
-    this.ctx.storage.kv.put(KEY, entry)
+    this.ctx.storage.kv.put(ENTRY_KEY, entry)
     return this.ctx.storage.setAlarm(entry.expiresAt)
   }
 
   take(): StoredSecret | null {
-    const entry = this.ctx.storage.kv.get<Entry>(KEY)
+    const entry = this.ctx.storage.kv.get<Entry>(ENTRY_KEY)
     if (entry === undefined) return null
-    this.ctx.storage.kv.delete(KEY)
+    this.ctx.storage.kv.delete(ENTRY_KEY)
     if (entry.expiresAt > Date.now()) return entry.secret
     env.USAGE.writeDataPoint(usageDataPoint("expired"))
     return null
@@ -42,7 +33,7 @@ export class SecretObject extends DurableObject {
 
   /** The Expiry passed unrevealed: Burn. `deleteAll` clears the alarm too. */
   override alarm(): Promise<void> {
-    if (this.ctx.storage.kv.get<Entry>(KEY) !== undefined) {
+    if (this.ctx.storage.kv.get<Entry>(ENTRY_KEY) !== undefined) {
       env.USAGE.writeDataPoint(usageDataPoint("expired"))
     }
     return this.ctx.storage.deleteAll()
@@ -59,7 +50,7 @@ export class CreateQuota extends DurableObject {
     const before = this.ctx.storage.kv.get<QuotaWindow>(QUOTA_KEY)
     const { allowed, window } = countCreation(before, now, limit)
     this.ctx.storage.kv.put(QUOTA_KEY, window)
-    if (window.start !== before?.start) void this.ctx.storage.setAlarm(window.start + WINDOW_MILLIS)
+    if (window.start !== before?.start) void this.ctx.storage.setAlarm(window.start + HOUR)
     return allowed
   }
 
@@ -75,6 +66,8 @@ declare global {
       readonly SECRETS: DurableObjectNamespace<SecretObject>
       readonly CREATE_QUOTA: DurableObjectNamespace<CreateQuota>
       readonly USAGE: AnalyticsEngineDataset
+      /** HMAC key for client IPs: `wrangler secret put IP_HASH_KEY` (`.dev.vars` locally). */
+      readonly IP_HASH_KEY?: string
     }
   }
 }
@@ -116,4 +109,18 @@ export const CreateRateLimitDurableObject: Layer.Layer<CreateRateLimit> = Layer.
         )
       }),
   }),
+)
+
+const IpHashKeyMissing = Layer.succeed(
+  ClientKey,
+  ClientKey.of({ of: () => Effect.die(new Error("IP_HASH_KEY is not set")) }),
+)
+
+/** ClientKey under the IP_HASH_KEY secret. If it's unset, creating a Secret fails: no fallback. */
+export const ClientKeyFromEnv: Layer.Layer<ClientKey> = Layer.unwrap(
+  Effect.sync(() =>
+    env.IP_HASH_KEY === undefined || env.IP_HASH_KEY === ""
+      ? IpHashKeyMissing
+      : ClientKey.hmac(env.IP_HASH_KEY),
+  ),
 )

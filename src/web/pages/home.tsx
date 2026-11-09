@@ -3,33 +3,19 @@ import { useState } from "preact/hooks"
 import { DEFAULT_EXPIRY, EXPIRY_LABEL, Expiry } from "../../shared/expiry.ts"
 import { type Link, linkPath } from "../../shared/link.ts"
 import { CopyButton } from "../copy-button.tsx"
+import { FAILURE_COPY, failureOf } from "../failure-copy.ts"
+import { FIELD_CLASS } from "../field.ts"
 import { useRun } from "../run.ts"
 import { sendSecret } from "../secret-flow.ts"
-import { MAX_SECRET_BYTES, secretBytes } from "../../shared/limits.ts"
+import { MAX_SECRET_BYTES, MAX_SECRET_LABEL, secretBytes } from "../../shared/limits.ts"
 
-/** Why the last attempt didn't create a Link: a typed failure's tag, or "failed" (network, server). */
-type Failure = "SecretEmpty" | "SecretTooLarge" | "RateLimited" | "failed"
+/** Why the last attempt didn't create a Link: a typed failure, or "sendFailed" (network, server). */
+type Failure = "SecretEmpty" | "SecretTooLarge" | "RateLimited" | "sendFailed"
 
-const FAILURE_COPY: Record<Failure, string> = {
-  SecretEmpty: "There's nothing to send yet. Type or paste your secret first.",
-  SecretTooLarge: "That's over the 10 KB limit, so I didn't send it. Shorten it and try again.",
-  RateLimited:
-    "You've created a lot of secrets in the last hour, so I'm holding off. Wait a while and try again.",
-  failed: "I couldn't create the link, so nothing was saved. Check your connection and try again.",
-}
+const sendFailure = (error: { readonly _tag: string } | undefined): Failure =>
+  failureOf(error, ["SecretEmpty", "SecretTooLarge", "RateLimited"], "sendFailed")
 
-const failureOf = (error: { readonly _tag: string }): Failure => {
-  switch (error._tag) {
-    case "SecretEmpty":
-    case "SecretTooLarge":
-    case "RateLimited":
-      return error._tag
-    default:
-      return "failed"
-  }
-}
-
-const size = (bytes: number) =>
+const formatSize = (bytes: number) =>
   bytes < 1024 ? `${String(bytes)} bytes` : `${(Math.ceil(bytes / 102.4) / 10).toFixed(1)} KB`
 
 type State =
@@ -57,10 +43,10 @@ export const Home = () => {
     event.preventDefault()
     setState({ step: "creating" })
     const options = passphrase === "" ? { expiry } : { expiry, passphrase }
-    // A rejected run is a defect (e.g. the network died mid-request): "failed" like any other.
+    // A rejected run is a defect (e.g. the network died mid-request): "sendFailed" like any other.
     const result = await run(sendSecret(plaintext, options)).catch(() => undefined)
     if (result === undefined) {
-      setState({ step: "editing", failure: "failed" })
+      setState({ step: "editing", failure: "sendFailed" })
     } else if (Result.isSuccess(result)) {
       setPlaintext("")
       setPassphrase("")
@@ -71,7 +57,7 @@ export const Home = () => {
         hasPassphrase: result.success.hasPassphrase,
       })
     } else {
-      setState({ step: "editing", failure: failureOf(result.failure) })
+      setState({ step: "editing", failure: sendFailure(result.failure) })
     }
   }
 
@@ -118,20 +104,21 @@ export const Home = () => {
             onInput={(e) => {
               setPlaintext(e.currentTarget.value)
             }}
-            class="block w-full rounded-md border border-line-strong bg-surface p-sm font-mono text-ink"
+            class={FIELD_CLASS}
           />
           <p
             id="secret-size"
             aria-live="polite"
             class={`font-mono text-label ${tooLarge ? "font-bold text-ink-strong" : "text-muted"}`}
           >
-            {size(used)} of 10 KB used{tooLarge ? ". Too large to send." : ""}
+            {formatSize(used)} of {MAX_SECRET_LABEL} used
+            {tooLarge ? ". Too large to send." : ""}
           </p>
           <ExpiryPicker value={expiry} onChange={setExpiry} />
           <PassphraseField value={passphrase} onInput={setPassphrase} />
           {state.step === "editing" && state.failure !== null ? (
             <p role="alert" class="text-body text-ink">
-              {FAILURE_COPY[state.failure]}
+              {FAILURE_COPY[state.failure].body}
             </p>
           ) : null}
           <button
@@ -168,7 +155,7 @@ const PassphraseField = ({
       onInput={(e) => {
         onInput(e.currentTarget.value)
       }}
-      class="block w-full rounded-md border border-line-strong bg-surface p-sm font-mono text-ink"
+      class={FIELD_CLASS}
     />
     <p id="passphrase-hint" class="text-body text-muted">
       Share it through a different channel than the link, e.g. say it on a call.
@@ -184,7 +171,9 @@ const ExpiryPicker = ({
   readonly onChange: (expiry: Expiry) => void
 }) => (
   <fieldset class="flex flex-wrap items-center gap-sm">
-    <legend class="mb-xs font-mono text-label uppercase text-muted">Expires if unopened in</legend>
+    <legend class="mb-xs font-mono text-label uppercase text-muted">
+      Expires if unrevealed in
+    </legend>
     {Expiry.literals.map((option) => (
       <label key={option} class="flex items-center gap-xs text-body text-ink">
         <input
@@ -224,10 +213,10 @@ const Created = ({
       onFocus={(e) => {
         e.currentTarget.select()
       }}
-      class="block w-full rounded-md border border-line-strong bg-surface p-sm font-mono text-ink"
+      class={FIELD_CLASS}
     />
     <p class="text-body text-muted">
-      It works once, then the secret is gone. Unopened, it expires in {EXPIRY_LABEL[expiry]}.
+      It works once, then the secret is gone. Unrevealed, it expires in {EXPIRY_LABEL[expiry]}.
     </p>
     <p class="text-body text-muted">
       {hasPassphrase

@@ -4,11 +4,11 @@
 // part of the key.
 import { Data, Result, Schema } from "effect"
 import { SecretId } from "./api.ts"
-import { LINK_KEY_BYTES, decodeBase64Url } from "./crypto.ts"
+import { LinkKey } from "./crypto.ts"
 
 export interface Link {
-  readonly id: string
-  readonly linkKey: string
+  readonly id: SecretId
+  readonly linkKey: LinkKey
   readonly hasPassphrase: boolean
 }
 
@@ -31,9 +31,7 @@ export const parseLink = (
   const fragment = hash.replace(/^#/, "")
   const hasPassphrase = fragment.endsWith(PASSPHRASE_FLAG)
   const linkKey = hasPassphrase ? fragment.slice(0, -PASSPHRASE_FLAG.length) : fragment
-  if (Result.isFailure(decodeBase64Url(linkKey, LINK_KEY_BYTES)) || linkKey.includes("=")) {
-    return Result.fail(new MalformedLinkKey())
-  }
+  if (!Schema.is(LinkKey)(linkKey)) return Result.fail(new MalformedLinkKey())
   if (!Schema.is(SecretId)(id)) return Result.fail(new MalformedSecretId())
   return Result.succeed({ id, linkKey, hasPassphrase })
 }

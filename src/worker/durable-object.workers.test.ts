@@ -5,12 +5,12 @@ import { env } from "cloudflare:workers"
 import { assert, describe, it } from "@effect/vitest"
 import { afterEach, vi } from "vitest"
 import { Clock, Effect } from "effect"
+import { HOUR } from "../shared/expiry.ts"
 import { secretStoreContract } from "../testing/secret-store-contract.ts"
 import { SecretStoreDurableObject } from "./durable-object.ts"
 import { SecretStore } from "./secret-store.ts"
 
 const secret = { ciphertext: "eA", iv: "aXZpdml2aXZpdml2", hasPassphrase: false }
-const HOUR = 3_600_000
 
 secretStoreContract("Durable Object", SecretStoreDurableObject, it.live)
 

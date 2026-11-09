@@ -2,9 +2,6 @@
 // client gets a `fetch` that calls the Worker's real web handler directly, so every request
 // crosses a genuine HTTP boundary (Web Request/Response) without a network. The server runs on the
 // test fiber's services, so TestClock drives server time too.
-//
-// Extend by adding options (e.g. a different SecretStore layer, a test rate limiter) rather than
-// a second harness.
 import { Context, Effect, Layer, Logger, Ref } from "effect"
 import { FetchHttpClient, HttpRouter } from "effect/http"
 import { HttpApiClient } from "effect/http-api"
@@ -12,7 +9,11 @@ import { Api } from "../shared/api.ts"
 import { SecretCrypto } from "../shared/crypto.ts"
 import { ApiClient } from "../web/api-client.ts"
 import { ApiLive, webHandlerOptions } from "../worker/api.ts"
-import { type CreateRateLimit, CreateRateLimitMemory } from "../worker/create-rate-limit.ts"
+import {
+  ClientKey,
+  type CreateRateLimit,
+  CreateRateLimitMemory,
+} from "../worker/create-rate-limit.ts"
 import type { SecretStore } from "../worker/secret-store.ts"
 import { SecretStoreMemory } from "../worker/secret-store-memory.ts"
 import { Usage, type UsageDataPoint } from "../worker/usage.ts"
@@ -31,6 +32,9 @@ export interface HarnessOptions {
 }
 
 const BASE_URL = "http://secret.test"
+
+/** The harness server's IP_HASH_KEY. */
+export const TEST_IP_HASH_KEY = "test-ip-hash-key"
 
 export class Harness extends Context.Service<
   Harness,
@@ -61,6 +65,7 @@ export class Harness extends Context.Service<
               ApiLive.pipe(
                 Layer.provide(options.store ?? SecretStoreMemory),
                 Layer.provide(options.rateLimit ?? CreateRateLimitMemory()),
+                Layer.provide(ClientKey.hmac(TEST_IP_HASH_KEY)),
                 Layer.provide(Usage.layer({ writeDataPoint: (p) => void dataPoints.push(p) })),
                 Layer.provide(Layer.succeedContext(testContext)),
                 Layer.provideMerge(Logger.layer([logCapture])),

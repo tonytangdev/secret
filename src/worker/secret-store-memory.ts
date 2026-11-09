@@ -1,13 +1,8 @@
 // In-memory SecretStore for tests. Ref.modify makes take's read-and-Burn one atomic step. Expiry
 // is read from Effect's Clock, so TestClock drives it.
 import { Clock, Effect, Layer, Option, Ref } from "effect"
-import { SecretGone, type StoredSecret } from "../shared/api.ts"
-import { SecretStore, newSecretId } from "./secret-store.ts"
-
-interface Entry {
-  readonly secret: StoredSecret
-  readonly expiresAt: number
-}
+import { SecretGone } from "../shared/api.ts"
+import { type Entry, SecretStore, newSecretId } from "./secret-store.ts"
 
 export const SecretStoreMemory: Layer.Layer<SecretStore> = Layer.effect(
   SecretStore,

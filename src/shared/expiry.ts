@@ -6,7 +6,8 @@ export type Expiry = typeof Expiry.Type
 
 export const DEFAULT_EXPIRY: Expiry = "1d"
 
-const HOUR = 3_600_000
+/** One hour in milliseconds. */
+export const HOUR = 3_600_000
 const MILLIS: Record<Expiry, number> = { "1h": HOUR, "1d": 24 * HOUR, "7d": 7 * 24 * HOUR }
 
 export const expiryMillis = (expiry: Expiry): number => MILLIS[expiry]

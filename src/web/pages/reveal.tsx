@@ -1,32 +1,36 @@
 import { Result } from "effect"
 import { useEffect, useState } from "preact/hooks"
-import type { StoredSecret } from "../../shared/api.ts"
 import { type Link, parseLink } from "../../shared/link.ts"
 import { CopyButton } from "../copy-button.tsx"
+import { FAILURE_COPY, failureOf } from "../failure-copy.ts"
+import { FIELD_CLASS } from "../field.ts"
 import { useRun } from "../run.ts"
-import { takeSecret, unlockSecret } from "../secret-flow.ts"
+import { type TakenSecret, takeSecret, unlockSecret } from "../secret-flow.ts"
+
+/** Failures that end the Reveal, each with a page of its own. */
+type Ending = "SecretGone" | "MalformedLinkKey" | "DecryptionFailed"
 
 type State =
   | { readonly step: "ready"; readonly link: Link }
   | { readonly step: "revealing" }
   | {
       readonly step: "locked"
-      readonly taken: StoredSecret
-      readonly link: Link
+      readonly taken: TakenSecret
       readonly attempt: "none" | "unlocking" | "wrong"
     }
   | { readonly step: "revealed"; readonly secret: string }
-  | { readonly step: "gone" }
-  | { readonly step: "malformed" }
-  | { readonly step: "undecryptable" }
+  | { readonly step: "ended"; readonly ending: Ending }
   | { readonly step: "failed"; readonly link: Link }
 
 // Only reads the page's own URL: opening a Link never calls the API (ADR-0007).
 const initialState = (id: string): State =>
   Result.match(parseLink(id, location.hash), {
     onSuccess: (link): State => ({ step: "ready", link }),
-    onFailure: (error): State =>
-      error._tag === "MalformedLinkKey" ? { step: "malformed" } : { step: "gone" },
+    // A malformed Secret ID can't name a Secret, so it reads like any other gone one.
+    onFailure: (error): State => ({
+      step: "ended",
+      ending: failureOf(error, ["MalformedLinkKey"], "SecretGone"),
+    }),
   })
 
 export const Reveal = ({ id = "" }: { readonly id?: string }) => {
@@ -52,31 +56,32 @@ export const Reveal = ({ id = "" }: { readonly id?: string }) => {
     setState({ step: "revealing" })
     const taken = await run(takeSecret(link)).catch(() => Result.fail(undefined))
     if (Result.isFailure(taken)) {
-      setState(taken.failure?._tag === "SecretGone" ? { step: "gone" } : { step: "failed", link })
+      const failure = failureOf(taken.failure, ["SecretGone"], "revealFailed")
+      setState(
+        failure === "SecretGone" ? { step: "ended", ending: failure } : { step: "failed", link },
+      )
       return
     }
     // The server's flag decides: the fragment's copy only drives the pre-Reveal hint.
     if (taken.success.hasPassphrase) {
-      setState({ step: "locked", taken: taken.success, link, attempt: "none" })
+      setState({ step: "locked", taken: taken.success, attempt: "none" })
       return
     }
-    setState(await unlock(taken.success, link))
+    setState(await unlock(taken.success))
   }
 
-  const unlock = async (taken: StoredSecret, link: Link, passphrase?: string): Promise<State> => {
-    const plain = await run(unlockSecret(taken, link, passphrase)).catch(() =>
-      Result.fail(undefined),
-    )
+  const unlock = async (taken: TakenSecret, passphrase?: string): Promise<State> => {
+    const plain = await run(unlockSecret(taken, passphrase)).catch(() => Result.fail(undefined))
     if (Result.isSuccess(plain)) return { step: "revealed", secret: plain.success }
     // The ciphertext stays in memory, so a wrong Passphrase can be retried as often as needed.
-    return plain.failure?._tag === "WrongPassphrase"
-      ? { step: "locked", taken, link, attempt: "wrong" }
-      : { step: "undecryptable" }
+    return failureOf(plain.failure, ["WrongPassphrase"], "DecryptionFailed") === "WrongPassphrase"
+      ? { step: "locked", taken, attempt: "wrong" }
+      : { step: "ended", ending: "DecryptionFailed" }
   }
 
-  const tryPassphrase = async (taken: StoredSecret, link: Link, passphrase: string) => {
-    setState({ step: "locked", taken, link, attempt: "unlocking" })
-    setState(await unlock(taken, link, passphrase))
+  const tryPassphrase = async (taken: TakenSecret, passphrase: string) => {
+    setState({ step: "locked", taken, attempt: "unlocking" })
+    setState(await unlock(taken, passphrase))
   }
 
   switch (state.step) {
@@ -96,7 +101,7 @@ export const Reveal = ({ id = "" }: { readonly id?: string }) => {
           ) : null}
           {state.step === "failed" ? (
             <p role="alert" class="mt-md text-body text-ink">
-              I couldn't reach the server. Check your connection and try again.
+              {FAILURE_COPY.revealFailed.body}
             </p>
           ) : null}
           <button
@@ -116,32 +121,14 @@ export const Reveal = ({ id = "" }: { readonly id?: string }) => {
         <Locked
           attempt={state.attempt}
           onSubmit={(passphrase) => {
-            void tryPassphrase(state.taken, state.link, passphrase)
+            void tryPassphrase(state.taken, passphrase)
           }}
         />
       )
     case "revealed":
       return <Revealed secret={state.secret} />
-    case "gone":
-      return (
-        <Notice title="This secret doesn't exist, was already viewed, or expired.">
-          If you didn't open it, tell the sender — someone else may have.
-        </Notice>
-      )
-    case "malformed":
-      return (
-        <Notice title="This link is incomplete.">
-          The part after the # is missing or damaged, so the secret can't be unlocked. Nothing was
-          revealed. Ask the sender to copy the whole link again.
-        </Notice>
-      )
-    case "undecryptable":
-      return (
-        <Notice title="This secret can't be decrypted.">
-          The link looks right, but its key doesn't unlock the secret, which is now gone from the
-          server. Ask the sender to create a new one.
-        </Notice>
-      )
+    case "ended":
+      return <Notice {...FAILURE_COPY[state.ending]} />
   }
 }
 
@@ -180,12 +167,11 @@ const Locked = ({
           onInput={(e) => {
             setPassphrase(e.currentTarget.value)
           }}
-          class="block w-full rounded-md border border-line-strong bg-surface p-sm font-mono text-ink"
+          class={FIELD_CLASS}
         />
         {attempt === "wrong" ? (
           <p role="alert" class="text-body text-ink">
-            Wrong passphrase. Check it with the sender and try again; you can retry as often as you
-            need.
+            {FAILURE_COPY.WrongPassphrase.body}
           </p>
         ) : null}
         <button type="submit" class="btn" disabled={attempt === "unlocking"}>
@@ -229,10 +215,10 @@ const Revealed = ({ secret }: { readonly secret: string }) => {
   )
 }
 
-const Notice = ({ title, children }: { readonly title: string; readonly children: string }) => (
+const Notice = ({ title, body }: { readonly title: string; readonly body: string }) => (
   <section role="alert">
     <h1 class="text-headline text-ink-strong">{title}</h1>
-    <p class="mt-md text-body text-muted">{children}</p>
+    <p class="mt-md text-body text-muted">{body}</p>
     <p class="mt-lg text-body">
       <a class="text-accent-strong underline" href="/">
         Send a secret of your own

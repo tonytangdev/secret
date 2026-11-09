@@ -3,10 +3,9 @@
 import { assert, describe, it } from "@effect/vitest"
 import { Effect } from "effect"
 import { TestClock } from "effect/testing"
+import { HOUR } from "./shared/expiry.ts"
 import { Harness } from "./testing/harness.ts"
 import { revealSecret, sendSecret } from "./web/secret-flow.ts"
-
-const HOUR = 3_600_000
 
 describe("Expiry", () => {
   it.effect.each([
