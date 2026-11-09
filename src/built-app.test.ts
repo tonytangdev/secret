@@ -70,17 +70,41 @@ const expectHardened = (res: Response) => {
 
 layer(AppPreview, { timeout: 60_000 })("built app", (app) => {
   describe.each(["/", "/s/abc123", "/how-it-works"])("page %s", (path) => {
-    app.effect("serves the app shell with hardened headers", () =>
+    app.effect("serves the app with hardened headers", () =>
       Effect.gen(function* () {
         const server = yield* App
         const res = yield* server.get(path)
         const body = yield* Effect.promise(() => res.text())
         expect(res.status).toBe(200)
-        expect(body).toContain('<div id="app"></div>')
+        expect(body).toContain('<div id="app">')
         expectHardened(res)
       }),
     )
   })
+
+  describe.each([
+    ["/", "Send secrets online"],
+    ["/how-it-works", "What isn"],
+  ])("prerendered page %s", (path, heading) => {
+    app.effect("arrives as HTML with its own canonical link", () =>
+      Effect.gen(function* () {
+        const server = yield* App
+        const res = yield* server.get(path)
+        const body = yield* Effect.promise(() => res.text())
+        expect(res.status).toBe(200)
+        expect(body).toContain(heading)
+        expect(body).toContain(`<link rel="canonical" href="https://secret.tonytang.dev${path}">`)
+      }),
+    )
+  })
+
+  app.effect("keeps Reveal pages out of search engines", () =>
+    Effect.gen(function* () {
+      const server = yield* App
+      const res = yield* server.get("/s/abc123")
+      expect(res.headers.get("x-robots-tag")).toBe("noindex")
+    }),
+  )
 
   app.effect("answers /api/health with no-store and hardened headers", () =>
     Effect.gen(function* () {
@@ -130,8 +154,8 @@ layer(AppPreview, { timeout: 60_000 })("built app", (app) => {
   )
 })
 
-describe("built files", () => {
-  const html = readFileSync(join(clientDir, "index.html"), "utf8")
+describe.each(["index.html", "how-it-works.html"])("built %s", (page) => {
+  const html = readFileSync(join(clientDir, page), "utf8")
   const css = readdirSync(join(clientDir, "assets"))
     .filter((f) => f.endsWith(".css"))
     .map((f) => readFileSync(join(clientDir, "assets", f), "utf8"))
@@ -145,7 +169,12 @@ describe("built files", () => {
   })
 
   it("loads every resource from its own origin", () => {
-    const htmlRefs = [...html.matchAll(/\s(?:src|href)="([^"]*)"/g)].map((m) => m[1])
+    // Links to other pages (<a>, canonical) load nothing; scripts, styles and icons do.
+    const htmlRefs = [
+      ...html.matchAll(/<(?:script|img)\b[^>]*\ssrc="([^"]*)"/g),
+      ...html.matchAll(/<link\b(?![^>]*rel="canonical")[^>]*\shref="([^"]*)"/g),
+    ].map((m) => m[1])
+    expect(htmlRefs.length).toBeGreaterThan(0)
     const cssRefs = [...css.matchAll(/url\(\s*["']?([^"')]*)/g)].map((m) => m[1])
     expect(cssRefs.length).toBeGreaterThan(0)
     for (const ref of [...htmlRefs, ...cssRefs]) expect(ref).toMatch(/^\/(?!\/)/)

@@ -7,6 +7,7 @@ import { FAILURE_COPY, failureOf } from "../failure-copy.ts"
 import { FIELD_CLASS } from "../field.ts"
 import { useRun } from "../run.ts"
 import { sendSecret } from "../secret-flow.ts"
+import { HomeGuide } from "./home-guide.tsx"
 import { MAX_SECRET_BYTES, MAX_SECRET_LABEL, secretBytes } from "../../shared/limits.ts"
 
 /** Why the last attempt didn't create a Link: a typed failure, or "sendFailed" (network, server). */
@@ -62,77 +63,113 @@ export const Home = () => {
   }
 
   return (
-    <section>
-      <h1 class="text-headline text-ink-strong">Send a secret once.</h1>
-      <ol class="mt-md space-y-xs font-mono text-label uppercase text-muted">
-        <li>1 · Encrypted in your browser</li>
-        <li>2 · Key never leaves the link</li>
-        <li>3 · Deleted after one read</li>
-      </ol>
-      <p class="mt-xs text-body text-muted">
-        <a class="text-accent-strong underline" href="/how-it-works">
-          How it works, and what it can't protect
-        </a>
-      </p>
-      {state.step === "created" ? (
-        <Created
-          url={state.url}
-          expiry={state.expiry}
-          hasPassphrase={state.hasPassphrase}
-          onAnother={() => {
-            setState({ step: "editing", failure: null })
-          }}
-        />
-      ) : (
-        <form
-          class="mt-lg space-y-sm"
-          onSubmit={(event) => {
-            void create(event)
-          }}
-        >
-          <label for="secret" class="block font-mono text-label uppercase text-muted">
-            Your secret
-          </label>
-          <textarea
-            id="secret"
-            required
-            rows={6}
-            autocomplete="off"
-            spellcheck={false}
-            aria-describedby="secret-size"
-            value={plaintext}
-            onInput={(e) => {
-              setPlaintext(e.currentTarget.value)
-            }}
-            class={FIELD_CLASS}
-          />
-          <p
-            id="secret-size"
-            aria-live="polite"
-            class={`font-mono text-label ${tooLarge ? "font-bold text-ink-strong" : "text-muted"}`}
-          >
-            {formatSize(used)} of {MAX_SECRET_LABEL} used
-            {tooLarge ? ". Too large to send." : ""}
+    <>
+      <section class="grid items-start gap-lg lg:grid-cols-[1fr_1.1fr] lg:gap-[4rem]">
+        <div class="lg:sticky lg:top-28">
+          <p class="font-mono text-label uppercase text-accent-strong">
+            Free · No sign-up · Open source
           </p>
-          <ExpiryPicker value={expiry} onChange={setExpiry} />
-          <PassphraseField value={passphrase} onInput={setPassphrase} />
-          {state.step === "editing" && state.failure !== null ? (
-            <p role="alert" class="text-body text-ink">
-              {FAILURE_COPY[state.failure].body}
-            </p>
-          ) : null}
-          <button
-            type="submit"
-            class="btn"
-            disabled={state.step === "creating" || tooLarge || plaintext.trim() === ""}
-          >
-            {state.step === "creating" ? "Encrypting…" : "Create link"}
-          </button>
-        </form>
-      )}
-    </section>
+          <h1 class="mt-sm font-display text-[clamp(2.6rem,6vw,4.2rem)] leading-[1] font-extrabold tracking-[-0.035em] text-ink-strong">
+            Send secrets online. <span class="highlight">Once.</span>
+          </h1>
+          <p class="mt-md text-body text-muted">
+            Paste a password, an API key or anything private. You get a link that reveals it one
+            time, then the secret is gone for good.
+          </p>
+          <ol class="mt-lg space-y-sm">
+            {STEPS.map(([title, detail], i) => (
+              <li key={title} class="flex gap-sm">
+                <span class="grid size-8 shrink-0 place-items-center rounded-full bg-teal font-mono text-label text-cream">
+                  {i + 1}
+                </span>
+                <span>
+                  <span class="block font-display text-[1.1rem] font-bold text-ink-strong">
+                    {title}
+                  </span>
+                  <span class="block text-[0.98rem] leading-snug text-muted">{detail}</span>
+                </span>
+              </li>
+            ))}
+          </ol>
+          <p class="mt-md text-[0.98rem]">
+            <a class="text-accent-strong underline" href="/how-it-works">
+              How it works, and what it can't protect
+            </a>
+          </p>
+        </div>
+        <div class="card p-md sm:p-lg">
+          {state.step === "created" ? (
+            <Created
+              url={state.url}
+              expiry={state.expiry}
+              hasPassphrase={state.hasPassphrase}
+              onAnother={() => {
+                setState({ step: "editing", failure: null })
+              }}
+            />
+          ) : (
+            <form
+              class="space-y-md"
+              onSubmit={(event) => {
+                void create(event)
+              }}
+            >
+              <div class="space-y-xs">
+                <label for="secret" class="block font-mono text-label uppercase text-muted">
+                  Your secret
+                </label>
+                <textarea
+                  id="secret"
+                  required
+                  rows={7}
+                  autocomplete="off"
+                  spellcheck={false}
+                  placeholder="Paste a password, API key, recovery code…"
+                  aria-describedby="secret-size"
+                  value={plaintext}
+                  onInput={(e) => {
+                    setPlaintext(e.currentTarget.value)
+                  }}
+                  class={`${FIELD_CLASS} resize-y`}
+                />
+                <p
+                  id="secret-size"
+                  aria-live="polite"
+                  class={`text-right font-mono text-label ${tooLarge ? "font-bold text-ink-strong" : "text-muted"}`}
+                >
+                  {formatSize(used)} of {MAX_SECRET_LABEL} used
+                  {tooLarge ? ". Too large to send." : ""}
+                </p>
+              </div>
+              <ExpiryPicker value={expiry} onChange={setExpiry} />
+              <PassphraseField value={passphrase} onInput={setPassphrase} />
+              {state.step === "editing" && state.failure !== null ? (
+                <p role="alert" class="text-body text-ink">
+                  {FAILURE_COPY[state.failure].body}
+                </p>
+              ) : null}
+              <button
+                type="submit"
+                class="btn w-full"
+                disabled={state.step === "creating" || tooLarge || plaintext.trim() === ""}
+              >
+                {state.step === "creating" ? "Encrypting…" : "Create link"}
+              </button>
+            </form>
+          )}
+        </div>
+      </section>
+      <HomeGuide />
+    </>
   )
 }
+
+/** The security in three steps, in order (PRODUCT.md). */
+const STEPS = [
+  ["Encrypted in your browser", "AES-256 runs on your device. My server only gets ciphertext."],
+  ["Key never leaves the link", "It sits after the # in the link, which browsers never send."],
+  ["Deleted after one read", "Revealing it burns it. Unrevealed, it expires on its own."],
+] as const
 
 const PassphraseField = ({
   value,
@@ -157,7 +194,7 @@ const PassphraseField = ({
       }}
       class={FIELD_CLASS}
     />
-    <p id="passphrase-hint" class="text-body text-muted">
+    <p id="passphrase-hint" class="text-[0.95rem] leading-snug text-muted">
       Share it through a different channel than the link, e.g. say it on a call.
     </p>
   </div>
@@ -170,24 +207,26 @@ const ExpiryPicker = ({
   readonly value: Expiry
   readonly onChange: (expiry: Expiry) => void
 }) => (
-  <fieldset class="flex flex-wrap items-center gap-sm">
+  <fieldset>
     <legend class="mb-xs font-mono text-label uppercase text-muted">
       Expires if unrevealed in
     </legend>
-    {Expiry.literals.map((option) => (
-      <label key={option} class="flex items-center gap-xs text-body text-ink">
-        <input
-          type="radio"
-          name="expiry"
-          value={option}
-          checked={value === option}
-          onChange={() => {
-            onChange(option)
-          }}
-        />
-        {EXPIRY_LABEL[option]}
-      </label>
-    ))}
+    <div class="segment">
+      {Expiry.literals.map((option) => (
+        <label key={option}>
+          <input
+            type="radio"
+            name="expiry"
+            value={option}
+            checked={value === option}
+            onChange={() => {
+              onChange(option)
+            }}
+          />
+          {EXPIRY_LABEL[option]}
+        </label>
+      ))}
+    </div>
   </fieldset>
 )
 
@@ -202,7 +241,8 @@ const Created = ({
   readonly hasPassphrase: boolean
   readonly onAnother: () => void
 }) => (
-  <div class="mt-lg space-y-sm">
+  <div class="space-y-sm">
+    <p class="font-display text-title text-ink-strong">Your link is ready.</p>
     <label for="link" class="block font-mono text-label uppercase text-muted">
       Your link
     </label>

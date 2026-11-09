@@ -1,0 +1,130 @@
+<!-- Source for public/og.png, favicon-192.png and apple-touch-icon.png. To regenerate: copy into public/, open it under `npm run dev`, screenshot #og, #i192 and #i180 at CSS scale, then delete the copy. -->
+<!doctype html>
+<html>
+  <head>
+    <style>
+      @font-face {
+        font-family: B;
+        src: url(/node_modules/@fontsource-variable/bricolage-grotesque/files/bricolage-grotesque-latin-wght-normal.woff2);
+        font-weight: 200 800;
+      }
+      @font-face {
+        font-family: M;
+        src: url(/node_modules/@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2);
+        font-weight: 100 800;
+      }
+      @font-face {
+        font-family: P;
+        src: url(/node_modules/@fontsource-variable/public-sans/files/public-sans-latin-wght-normal.woff2);
+        font-weight: 100 900;
+      }
+      body {
+        margin: 0;
+        background: #888;
+      }
+      #og {
+        width: 1200px;
+        height: 630px;
+        box-sizing: border-box;
+        padding: 64px 90px;
+        background: oklch(0.34 0.08 202);
+        color: oklch(0.96 0.025 95);
+        position: relative;
+        overflow: hidden;
+        font-family: P;
+      }
+      #og h1 {
+        font-family: B;
+        font-weight: 800;
+        font-size: 104px;
+        line-height: 0.95;
+        letter-spacing: -0.035em;
+        margin: 28px 0 0;
+      }
+      #og h1 span {
+        color: oklch(0.86 0.16 92);
+      }
+      #og p {
+        font-size: 32px;
+        margin: 26px 0 0;
+        opacity: 0.85;
+        max-width: 900px;
+        line-height: 1.3;
+      }
+      #og .url {
+        position: absolute;
+        left: 90px;
+        bottom: 70px;
+        font-family: M;
+        font-size: 28px;
+        letter-spacing: 0.04em;
+        color: oklch(0.86 0.16 92);
+      }
+      #og .tags {
+        position: absolute;
+        right: 90px;
+        bottom: 70px;
+        font-family: M;
+        font-size: 24px;
+        opacity: 0.7;
+        letter-spacing: 0.06em;
+      }
+      .icon {
+        width: 192px;
+        height: 192px;
+        display: block;
+        margin: 20px;
+      }
+      .icon2 {
+        width: 180px;
+        height: 180px;
+        display: block;
+        margin: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="og">
+      <svg width="200" viewBox="0 0 120 56" fill="none">
+        <g fill="oklch(0.42 0.085 197)">
+          <circle cx="34" cy="30" r="16" />
+          <circle cx="86" cy="30" r="16" />
+        </g>
+        <g
+          stroke="oklch(0.96 0.025 95)"
+          stroke-width="4"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <circle cx="34" cy="30" r="18" />
+          <circle cx="86" cy="30" r="18" />
+          <path d="M51 25 C 56 31, 64 31, 69 25" />
+          <path d="M17 26 L 6 21" />
+          <path d="M103 26 L 114 21" />
+        </g>
+        <g fill="oklch(0.86 0.16 92)">
+          <circle cx="34" cy="27" r="4.5" />
+          <path d="M31.6 28.5 L30 38 H38 L36.4 28.5Z" />
+          <circle cx="86" cy="27" r="4.5" />
+          <path d="M83.6 28.5 L82 38 H90 L88.4 28.5Z" />
+        </g>
+      </svg>
+      <h1>Send secrets online. <span>Once.</span></h1>
+      <p>Encrypted in your browser. Key never leaves the link. Deleted after one read.</p>
+      <div class="url">secret.tonytang.dev</div>
+      <div class="tags">FREE · NO SIGN-UP · OPEN SOURCE</div>
+    </div>
+    <div
+      id="i192"
+      style="overflow: hidden; width: 192px; height: 192px; background: oklch(0.42 0.085 197)"
+    >
+      <img src="/favicon.svg" style="width: 192px; height: 192px; transform: scale(1.12)" />
+    </div>
+    <div
+      id="i180"
+      style="width: 180px; height: 180px; background: oklch(0.42 0.085 197); overflow: hidden"
+    >
+      <img src="/favicon.svg" style="width: 180px; height: 180px; transform: scale(1.12)" />
+    </div>
+  </body>
+</html>

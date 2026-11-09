@@ -108,20 +108,36 @@
   /* measure: max-w-measure (global.css uses 41rem; DESIGN.md says 44rem) */
   --container-measure: 41rem;
   --container-site: 82rem;
+  --container-page: 64rem;
 
   /* motion + the one hover shadow */
   --ease-brand: cubic-bezier(0.2, 0.8, 0.2, 1);
   --shadow-lift: 0 12px 30px oklch(0.2 0.02 255 / 0.08);
 }
 
-/* Dark follows the system (no toggle, no inline no-flash script needed). */
+/* Dark: the toggle's choice (data-theme, set by /boot.js before first paint), else the system's.
+   Without JavaScript there's no data-theme, so the media query alone decides. */
 @layer base {
   :root {
     color-scheme: light;
     --dur: 160ms;
   }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --color-bg: oklch(0.17 0.018 200);
+    --color-surface: oklch(0.214 0.02 200);
+    --color-surface-2: oklch(0.25 0.022 200);
+    --color-ink: oklch(0.93 0.012 190);
+    --color-ink-strong: oklch(0.97 0.01 190);
+    --color-muted: oklch(0.69 0.018 195);
+    --color-accent: oklch(0.74 0.1 194);
+    --color-accent-strong: oklch(0.82 0.09 192);
+    --color-line: oklch(0.31 0.018 200);
+    --color-line-strong: oklch(0.4 0.02 200);
+    --shadow-lift: 0 12px 30px oklch(0 0 0 / 0.35);
+  }
   @media (prefers-color-scheme: dark) {
-    :root {
+    :root:not([data-theme]) {
       color-scheme: dark;
       --color-bg: oklch(0.17 0.018 200);
       --color-surface: oklch(0.214 0.02 200);
@@ -133,7 +149,14 @@
       --color-accent-strong: oklch(0.82 0.09 192);
       --color-line: oklch(0.31 0.018 200);
       --color-line-strong: oklch(0.4 0.02 200);
+      --shadow-lift: 0 12px 30px oklch(0 0 0 / 0.35);
     }
+  }
+
+  /* A page that wasn't prerendered (a Reveal, a 404) is served the home page's HTML: hide it
+     until the app renders the right one (boot.js sets the class, main.tsx clears it). */
+  .app-pending #app {
+    visibility: hidden;
   }
 
   html {
@@ -198,6 +221,117 @@
     border-color: var(--color-accent);
     color: var(--color-accent);
   }
+}
+
+/* The theme toggle shows the theme it switches to. */
+@utility icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  cursor: pointer;
+  color: var(--color-ink);
+  background: transparent;
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-md);
+  transition:
+    border-color var(--dur) var(--ease-brand),
+    color var(--dur) var(--ease-brand);
+  &:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+}
+.theme-icon-sun {
+  display: none;
+}
+:root[data-theme="dark"] .theme-icon-sun {
+  display: block;
+}
+:root[data-theme="dark"] .theme-icon-moon {
+  display: none;
+}
+
+/* Raised panel: the form, the steps, the FAQ. */
+@utility card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lift);
+}
+
+/* The yellow marker stroke behind a word in a headline. */
+@utility highlight {
+  background: linear-gradient(
+    transparent 62%,
+    var(--color-pop) 62%,
+    var(--color-pop) 92%,
+    transparent 92%
+  );
+  padding: 0 0.08em;
+  box-decoration-break: clone;
+}
+:root[data-theme="dark"] .highlight {
+  background: none;
+  color: var(--color-pop);
+  padding: 0;
+}
+
+/* Expiry picker: radios that look like a segmented control. */
+.segment {
+  display: inline-flex;
+  padding: 0.25rem;
+  gap: 0.25rem;
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+}
+.segment label {
+  position: relative;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.9rem;
+  font-size: 0.95rem;
+  color: var(--color-muted);
+  transition:
+    background var(--dur) var(--ease-brand),
+    color var(--dur) var(--ease-brand);
+}
+.segment input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+}
+.segment label:has(input:checked) {
+  background: var(--color-surface);
+  color: var(--color-ink-strong);
+  font-weight: 600;
+  box-shadow: 0 1px 3px oklch(0.2 0.02 255 / 0.12);
+}
+.segment label:has(input:focus-visible) {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* FAQ disclosure marker. */
+.faq summary {
+  cursor: pointer;
+  list-style: none;
+}
+.faq summary::-webkit-details-marker {
+  display: none;
+}
+.faq summary::after {
+  content: "+";
+  float: right;
+  font-family: var(--font-mono);
+  color: var(--color-accent);
+  transition: transform var(--dur) var(--ease-brand);
+}
+.faq details[open] summary::after {
+  transform: rotate(45deg);
 }
 
 @media (prefers-reduced-motion: reduce) {

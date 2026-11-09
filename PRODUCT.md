@@ -55,7 +55,7 @@ Files, multi-read links, read receipts, sender-side delete, accounts, French, pa
 
 ## Brand
 
-Follows tonytang.dev's `DESIGN.md` (teal / cream / yellow tokens, Bricolage Grotesque, Public Sans, JetBrains Mono), with design tokens copied rather than shared until the third tool. Light/dark follows the system. Copy is short, first-person and plain-spoken, like the site. The footer links back to tonytang.dev `/apps`.
+Follows tonytang.dev's `DESIGN.md` (teal / cream / yellow tokens, Bricolage Grotesque, Public Sans, JetBrains Mono), with design tokens copied rather than shared until the third tool. Light/dark follows the system until the header toggle picks one (saved in `localStorage`, applied by `public/boot.js` before first paint). The logo is tonytang.dev's glasses with keyholes for pupils (`src/web/logo.tsx`, `public/favicon.svg`). Copy is short, first-person and plain-spoken, like the site. The footer links back to tonytang.dev `/apps`.
 
 ## Repo
 
