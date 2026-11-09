@@ -1,0 +1,18 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "rangeStrategy": "pin",
+  "packageRules": [
+    {
+      "description": "TS 7, oxlint, oxlint-tsgolint and @effect/tsgo only work at matching versions (see @effect/tsgo README), so they upgrade together. CI fails if a bump leaves the supported matrix.",
+      "matchPackageNames": ["typescript", "oxlint", "oxlint-tsgolint", "@effect/tsgo"],
+      "groupName": "typescript-toolchain",
+      "separateMajorMinor": false,
+      "separateMultipleMajor": false
+    },
+    {
+      "matchPackageNames": ["effect", "@effect/vitest"],
+      "groupName": "effect"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "secret",
+  "main": "./src/worker/index.ts",
+  "compatibility_date": "2026-11-09",
+  "assets": {
+    // The Cloudflare Vite plugin points this at its client build output.
+    "directory": "./dist/client",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"],
+  },
+  // One SecretObject per Secret (ADR-0002); SQLite-backed for synchronous storage.
+  // Plus one CreateQuota per client IP hash: the hourly creation limit (spec amendment 1).
+  "durable_objects": {
+    "bindings": [
+      { "name": "SECRETS", "class_name": "SecretObject" },
+      { "name": "CREATE_QUOTA", "class_name": "CreateQuota" },
+    ],
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["SecretObject"] },
+    { "tag": "v2", "new_sqlite_classes": ["CreateQuota"] },
+  ],
+  // Usage counts (ADR-0005): created / revealed / expired, nothing else.
+  "analytics_engine_datasets": [{ "binding": "USAGE", "dataset": "secret_usage" }],
+  // HMAC key for client IPs (rate limit). Set with `wrangler secret put IP_HASH_KEY`; locally in
+  // `.dev.vars` (see `.dev.vars.example`).
+  "secrets": { "required": ["IP_HASH_KEY"] },
+  "routes": [{ "pattern": "secret.tonytang.dev", "custom_domain": true }],
+  "workers_dev": false,
+  "preview_urls": false,
+  // Request URLs must not land in Cloudflare's logs or traces (spec amendment 2).
+  "observability": {
+    "enabled": false,
+    "logs": { "enabled": false, "invocation_logs": false },
+    "traces": { "enabled": false },
+  },
+}

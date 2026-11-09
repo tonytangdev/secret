@@ -1,0 +1,57 @@
+{
+  "name": "secret",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "effect-tsgo tsc -b",
+    "lint": "effect-tsgo oxlint --type-aware --deny-warnings --report-unused-disable-directives-severity=error",
+    "lint:disable-reasons": "node tools/check-disable-reasons.mjs",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
+    "test": "vite build && vitest run",
+    "knip": "knip",
+    "check": "npm run typecheck && npm run lint && npm run lint:disable-reasons && npm run format:check && npm test && npm run knip",
+    "prepare": "lefthook install"
+  },
+  "dependencies": {
+    "@fontsource-variable/bricolage-grotesque": "5.3.0",
+    "@fontsource-variable/jetbrains-mono": "5.3.0",
+    "@fontsource-variable/public-sans": "5.3.0",
+    "effect": "4.1.2",
+    "preact": "11.2.0",
+    "preact-iso": "2.12.2"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "1.68.0",
+    "@cloudflare/vitest-plugin": "1.6.1",
+    "@cloudflare/workers-types": "5.20261109.1",
+    "@effect/tsgo": "0.67.5",
+    "@effect/vitest": "4.1.2",
+    "@preact/preset-vite": "2.10.6",
+    "@tailwindcss/vite": "4.3.5",
+    "@types/node": "26.6.6",
+    "knip": "6.44.2",
+    "lefthook": "2.2.2",
+    "oxfmt": "0.78.0",
+    "oxlint": "1.92.0",
+    "oxlint-tsgolint": "7.0.2006",
+    "preact-render-to-string": "6.8.2",
+    "tailwindcss": "4.3.5",
+    "typescript": "7.0.2",
+    "vite": "8.3.7",
+    "vitest": "5.1.0",
+    "wrangler": "4.159.0"
+  },
+  "overrides": {
+    "wrangler": "$wrangler"
+  },
+  "allowScripts": {
+    "workerd@1.20261103.1": true,
+    "workerd@1.20261109.1": true,
+    "esbuild@0.28.2": true
+  }
+}
