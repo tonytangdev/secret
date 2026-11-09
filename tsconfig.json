@@ -12,6 +12,9 @@
     },
     {
       "path": "./tsconfig.tools.json"
+    },
+    {
+      "path": "./tsconfig.workers-test.json"
     }
   ]
 }

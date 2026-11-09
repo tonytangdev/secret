@@ -1,5 +1,6 @@
 import { Result } from "effect"
 import { useState } from "preact/hooks"
+import { DEFAULT_EXPIRY, EXPIRY_LABEL, Expiry } from "../../shared/expiry.ts"
 import { type Link, linkPath } from "../../shared/link.ts"
 import { CopyButton } from "../copy-button.tsx"
 import { useRun } from "../run.ts"
@@ -8,7 +9,7 @@ import { sendSecret } from "../secret-flow.ts"
 type State =
   | { readonly step: "editing"; readonly failed: boolean }
   | { readonly step: "creating" }
-  | { readonly step: "created"; readonly url: string }
+  | { readonly step: "created"; readonly url: string; readonly expiry: Expiry }
 
 const linkUrl = (link: Link) => `${location.origin}${linkPath(link)}`
 
@@ -16,14 +17,15 @@ export const Home = () => {
   const run = useRun()
   const [state, setState] = useState<State>({ step: "editing", failed: false })
   const [plaintext, setPlaintext] = useState("")
+  const [expiry, setExpiry] = useState<Expiry>(DEFAULT_EXPIRY)
 
   const create = async (event: Event) => {
     event.preventDefault()
     setState({ step: "creating" })
-    const result = await run(sendSecret(plaintext)).catch(() => Result.fail(undefined))
+    const result = await run(sendSecret(plaintext, { expiry })).catch(() => Result.fail(undefined))
     if (Result.isSuccess(result)) {
       setPlaintext("")
-      setState({ step: "created", url: linkUrl(result.success) })
+      setState({ step: "created", url: linkUrl(result.success), expiry })
     } else {
       setState({ step: "editing", failed: true })
     }
@@ -40,6 +42,7 @@ export const Home = () => {
       {state.step === "created" ? (
         <Created
           url={state.url}
+          expiry={state.expiry}
           onAnother={() => {
             setState({ step: "editing", failed: false })
           }}
@@ -66,6 +69,7 @@ export const Home = () => {
             }}
             class="block w-full rounded-md border border-line-strong bg-surface p-sm font-mono text-ink"
           />
+          <ExpiryPicker value={expiry} onChange={setExpiry} />
           {state.step === "editing" && state.failed ? (
             <p role="alert" class="text-body text-ink">
               I couldn't create the link, so nothing was saved. Check your connection and try again.
@@ -80,7 +84,41 @@ export const Home = () => {
   )
 }
 
-const Created = ({ url, onAnother }: { readonly url: string; readonly onAnother: () => void }) => (
+const ExpiryPicker = ({
+  value,
+  onChange,
+}: {
+  readonly value: Expiry
+  readonly onChange: (expiry: Expiry) => void
+}) => (
+  <fieldset class="flex flex-wrap items-center gap-sm">
+    <legend class="mb-xs font-mono text-label uppercase text-muted">Expires if unopened in</legend>
+    {Expiry.literals.map((option) => (
+      <label key={option} class="flex items-center gap-xs text-body text-ink">
+        <input
+          type="radio"
+          name="expiry"
+          value={option}
+          checked={value === option}
+          onChange={() => {
+            onChange(option)
+          }}
+        />
+        {EXPIRY_LABEL[option]}
+      </label>
+    ))}
+  </fieldset>
+)
+
+const Created = ({
+  url,
+  expiry,
+  onAnother,
+}: {
+  readonly url: string
+  readonly expiry: Expiry
+  readonly onAnother: () => void
+}) => (
   <div class="mt-lg space-y-sm">
     <label for="link" class="block font-mono text-label uppercase text-muted">
       Your link
@@ -95,7 +133,7 @@ const Created = ({ url, onAnother }: { readonly url: string; readonly onAnother:
       class="block w-full rounded-md border border-line-strong bg-surface p-sm font-mono text-ink"
     />
     <p class="text-body text-muted">
-      It works once, then the secret is gone. Unopened, it expires in 1 day.
+      It works once, then the secret is gone. Unopened, it expires in {EXPIRY_LABEL[expiry]}.
     </p>
     <div class="flex flex-wrap gap-sm">
       <CopyButton text={url} label="Copy link" />

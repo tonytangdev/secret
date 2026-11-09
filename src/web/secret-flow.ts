@@ -3,15 +3,23 @@ import { Effect } from "effect"
 import type { Link } from "../shared/link.ts"
 import { SecretCrypto } from "../shared/crypto.ts"
 import type { StoredSecret } from "../shared/api.ts"
+import { DEFAULT_EXPIRY, type Expiry } from "../shared/expiry.ts"
 import { ApiClient } from "./api-client.ts"
 
 /** Encrypts the Secret in the browser, stores only the ciphertext, and returns its Link. */
-export const sendSecret = Effect.fn("sendSecret")(function* (plaintext: string) {
+export interface SendOptions {
+  readonly expiry?: Expiry
+}
+
+export const sendSecret = Effect.fn("sendSecret")(function* (
+  plaintext: string,
+  options: SendOptions = {},
+) {
   const secretCrypto = yield* SecretCrypto
   const api = yield* ApiClient
   const { linkKey, ciphertext, iv } = yield* secretCrypto.encrypt(plaintext)
   const { id } = yield* api.secrets.create({
-    payload: { ciphertext, iv, hasPassphrase: false, expiry: "1d" },
+    payload: { ciphertext, iv, hasPassphrase: false, expiry: options.expiry ?? DEFAULT_EXPIRY },
   })
   const link: Link = { id, linkKey }
   return link
