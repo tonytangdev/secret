@@ -45,23 +45,22 @@ export const Layout = ({ children }: { readonly children: ComponentChildren }) =
         {children}
       </main>
       <footer class="border-t border-line">
-        <div class="mx-auto flex w-full max-w-page flex-wrap items-center gap-x-md gap-y-xs px-5 py-6 font-mono text-label text-muted">
+        <div class="mx-auto flex w-full max-w-page flex-wrap items-center justify-between gap-x-md gap-y-xs px-5 py-6 font-mono text-label text-muted">
           <span class="flex items-center gap-xs">
             <Logo class="w-7" />
             Made by Tony Tang
           </span>
-          <a class="text-accent-strong underline" href="https://tonytang.dev/apps">
-            More apps
-          </a>
-          <a class="text-accent-strong underline" href="/how-it-works">
-            How it works
-          </a>
-          <a class="text-accent-strong underline" href="https://github.com/tonytangdev/secret">
-            Source code
-          </a>
-          <a class="text-accent-strong underline" href="https://github.com/sponsors/tonytangdev">
-            Support me
-          </a>
+          <div class="flex flex-wrap gap-x-md gap-y-xs">
+            <a class="text-accent-strong underline" href="https://tonytang.dev/apps">
+              More apps
+            </a>
+            <a class="text-accent-strong underline" href="https://github.com/tonytangdev/secret">
+              Source code
+            </a>
+            <a class="text-accent-strong underline" href="https://github.com/sponsors/tonytangdev">
+              Support me
+            </a>
+          </div>
         </div>
       </footer>
     </div>
