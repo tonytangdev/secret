@@ -5,7 +5,7 @@
 //
 // Extend by adding options (e.g. a different SecretStore layer, a test rate limiter) rather than
 // a second harness.
-import { Context, Effect, Layer, Ref } from "effect"
+import { Context, Effect, Layer, Logger, Ref } from "effect"
 import { FetchHttpClient, HttpRouter } from "effect/http"
 import { HttpApiClient } from "effect/http-api"
 import { Api } from "../shared/api.ts"
@@ -14,6 +14,7 @@ import { ApiClient } from "../web/api-client.ts"
 import { ApiLive, webHandlerOptions } from "../worker/api.ts"
 import type { SecretStore } from "../worker/secret-store.ts"
 import { SecretStoreMemory } from "../worker/secret-store-memory.ts"
+import { Usage, type UsageDataPoint } from "../worker/usage.ts"
 
 /** A request as the server received it. */
 export interface WireRequest {
@@ -35,6 +36,10 @@ export class Harness extends Context.Service<
     readonly requests: Effect.Effect<ReadonlyArray<WireRequest>>
     /** Sends a raw request to the server, bypassing the typed client. Path is relative. */
     readonly fetch: (path: string, init?: RequestInit) => Effect.Effect<Response>
+    /** Every Analytics Engine data point the server has written so far, in order. */
+    readonly dataPoints: Effect.Effect<ReadonlyArray<UsageDataPoint>>
+    /** Every log line the server has emitted so far (JSON, annotations included), in order. */
+    readonly logs: Effect.Effect<ReadonlyArray<string>>
   }
 >()("Harness") {
   /** Provides Harness, ApiClient and SecretCrypto. */
@@ -44,12 +49,17 @@ export class Harness extends Context.Service<
     const harness = Layer.effectContext(
       Effect.gen(function* () {
         const testContext = yield* Effect.context()
+        const dataPoints: Array<UsageDataPoint> = []
+        const logs: Array<string> = []
+        const logCapture = Logger.formatJson.pipe(Logger.map((line) => void logs.push(line)))
         const server = yield* Effect.acquireRelease(
           Effect.sync(() =>
             HttpRouter.toWebHandler(
               ApiLive.pipe(
                 Layer.provide(options.store ?? SecretStoreMemory),
+                Layer.provide(Usage.layer({ writeDataPoint: (p) => void dataPoints.push(p) })),
                 Layer.provide(Layer.succeedContext(testContext)),
+                Layer.provideMerge(Logger.layer([logCapture])),
               ),
               webHandlerOptions,
             ),
@@ -78,6 +88,8 @@ export class Harness extends Context.Service<
             Harness.of({
               requests: Ref.get(log),
               fetch: (path, init) => send(new Request(BASE_URL + path, init)),
+              dataPoints: Effect.sync(() => [...dataPoints]),
+              logs: Effect.sync(() => [...logs]),
             }),
           ),
         )

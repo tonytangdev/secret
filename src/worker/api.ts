@@ -7,19 +7,24 @@ import { Api } from "../shared/api.ts"
 import { API_HEADERS } from "../shared/security-headers.ts"
 import { expiryMillis } from "../shared/expiry.ts"
 import { SecretStore } from "./secret-store.ts"
+import { Usage } from "./usage.ts"
 
 const SecretsLive = HttpApiBuilder.group(Api, "secrets", (handlers) =>
   Effect.gen(function* () {
     const store = yield* SecretStore
+    const usage = yield* Usage
     return handlers
       .handle("create", ({ payload: { expiry, ...secret } }) =>
         Effect.gen(function* () {
           const now = yield* Clock.currentTimeMillis
           const id = yield* store.put(secret, now + expiryMillis(expiry))
+          yield* usage.record("created")
           return { id }
         }),
       )
-      .handle("reveal", ({ payload }) => store.take(payload.id))
+      .handle("reveal", ({ payload }) =>
+        store.take(payload.id).pipe(Effect.tap(() => usage.record("revealed"))),
+      )
   }),
 )
 
@@ -39,7 +44,7 @@ const ApiHeaders = HttpRouter.middleware(
   { global: true },
 )
 
-/** The API routes; needs a SecretStore. Serve with `HttpRouter.toWebHandler(ApiLive, webHandlerOptions)`. */
+/** The API routes; needs a SecretStore and Usage. Serve with `HttpRouter.toWebHandler(ApiLive, webHandlerOptions)`. */
 export const ApiLive = Layer.mergeAll(
   HttpApiBuilder.layer(Api).pipe(Layer.provide([SecretsLive, HealthLive])),
   ApiHeaders,

@@ -11,6 +11,8 @@
   },
   // One SecretObject per Secret (ADR-0002); SQLite-backed for synchronous storage.
   "durable_objects": { "bindings": [{ "name": "SECRETS", "class_name": "SecretObject" }] },
+  // Usage counts (ADR-0005): created / revealed / expired, nothing else.
+  "analytics_engine_datasets": [{ "binding": "USAGE", "dataset": "secret_usage" }],
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["SecretObject"] }],
   "routes": [{ "pattern": "secret.tonytang.dev", "custom_domain": true }],
   "workers_dev": false,
