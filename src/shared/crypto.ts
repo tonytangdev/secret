@@ -4,10 +4,10 @@
 import { Context, Data, Effect, Layer, Result, Schema } from "effect"
 import { Base64Url } from "effect/encoding"
 
-const LINK_KEY_BYTES = 32 // 256-bit Link key = AES-256 key
+export const LINK_KEY_BYTES = 32 // 256-bit Link key = AES-256 key
 export const IV_BYTES = 12 // 96-bit GCM IV, fresh per Secret
 export const SALT_BYTES = 16 // 128-bit PBKDF2 salt, fresh per Secret
-const PBKDF2_ITERATIONS = 600_000
+export const PBKDF2_ITERATIONS = 600_000
 // Changing the KDF parameters breaks every existing Link with a Passphrase.
 const HKDF_INFO = "secret.tonytang.dev/v1 aes-256-gcm"
 

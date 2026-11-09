@@ -1,7 +1,10 @@
 // /how-it-works: what is and isn't protected, and how. Every claim here is backed by code and tests;
 // change the page when the code changes. Numbers come from the modules that enforce them.
 import type { ComponentChildren } from "preact"
+import { SECRET_ID_BYTES } from "../../shared/api.ts"
+import { IV_BYTES, LINK_KEY_BYTES, PBKDF2_ITERATIONS, SALT_BYTES } from "../../shared/crypto.ts"
 import { DEFAULT_EXPIRY, EXPIRY_LABEL, Expiry } from "../../shared/expiry.ts"
+import { CREATES_PER_HOUR, MAX_SECRET_LABEL } from "../../shared/limits.ts"
 
 const REPO = "https://github.com/tonytangdev/secret"
 
@@ -22,7 +25,7 @@ const List = ({ children }: { readonly children: ComponentChildren }) => (
   <ul class="list-disc space-y-xs pl-md text-body text-ink">{children}</ul>
 )
 
-const P = ({ children }: { readonly children: ComponentChildren }) => (
+const Paragraph = ({ children }: { readonly children: ComponentChildren }) => (
   <p class="text-body text-ink">{children}</p>
 )
 
@@ -30,15 +33,29 @@ const Code = ({ children }: { readonly children: ComponentChildren }) => (
   <code class="font-mono text-[0.9em] text-ink-strong">{children}</code>
 )
 
-const A = ({ href, children }: { readonly href: string; readonly children: ComponentChildren }) => (
+const ExternalLink = ({
+  href,
+  children,
+}: {
+  readonly href: string
+  readonly children: ComponentChildren
+}) => (
   <a class="text-accent-strong underline" href={href}>
     {children}
   </a>
 )
 
-const expiryOptions = Expiry.literals
-  .map((e) => (e === DEFAULT_EXPIRY ? `${EXPIRY_LABEL[e]} (the default)` : EXPIRY_LABEL[e]))
-  .join(", ")
+const bits = (bytes: number) => `${String(bytes * 8)}-bit`
+
+const iterations = PBKDF2_ITERATIONS.toLocaleString("en-US")
+
+/** "1 hour, 1 day (the default) or 7 days" */
+const expiryOptions = (() => {
+  const labels = Expiry.literals.map((e) =>
+    e === DEFAULT_EXPIRY ? `${EXPIRY_LABEL[e]} (the default)` : EXPIRY_LABEL[e],
+  )
+  return `${labels.slice(0, -1).join(", ")} or ${labels.at(-1) ?? ""}`
+})()
 
 export const HowItWorks = () => (
   <article>
@@ -100,64 +117,66 @@ export const HowItWorks = () => (
           never decrypts anything.
         </li>
         <li>
-          Every Secret gets a fresh 256-bit Link key and a fresh 96-bit IV from the browser's random
-          number generator. Without a Passphrase, the Link key is the AES key.
+          Every Secret gets a fresh {bits(LINK_KEY_BYTES)} Link key and a fresh {bits(IV_BYTES)} IV
+          from the browser's random number generator. Without a Passphrase, the Link key is the AES
+          key.
         </li>
         <li>
-          With a Passphrase, PBKDF2-SHA256 stretches it with 600,000 iterations and a fresh 128-bit
-          salt, then HKDF-SHA256 mixes the result with the Link key. You need both the Link and the
-          Passphrase, and a wrong Passphrase fails GCM's integrity check.
+          With a Passphrase, PBKDF2-SHA256 stretches it with {iterations} iterations and a fresh{" "}
+          {bits(SALT_BYTES)} salt, then HKDF-SHA256 mixes the result with the Link key. You need
+          both the Link and the Passphrase, and a wrong Passphrase fails GCM's integrity check.
         </li>
         <li>
           A Link looks like <Code>/s/&lt;id&gt;#&lt;link-key&gt;</Code>, with <Code>.p</Code> on the
           end when there's a Passphrase, so the Reveal page can tell you before you click.
         </li>
         <li>
-          Secret IDs are 128 random bits made on the server, so nobody can guess or list them.
+          Secret IDs are {String(SECRET_ID_BYTES * 8)} random bits made on the server, so nobody can
+          guess or list them.
         </li>
       </List>
     </Section>
 
     <Section title="Reveal, then Burn">
-      <P>
+      <Paragraph>
         Opening a Link doesn't touch the Secret. Slack, iMessage and Teams fetch a link as soon as
         it's pasted, to build a preview. If opening it Burned the Secret, a bot would use it up
         before your recipient got there. So the page waits for a click on Reveal, then fetches and
         Burns the Secret in one step.
-      </P>
-      <P>
+      </Paragraph>
+      <Paragraph>
         A Passphrase can't be checked before the Burn, because my server can't check it at all. So
         the ciphertext stays in the tab, and you can retry a wrong Passphrase as often as you like.
         Close the tab and it's gone. That gives an attacker nothing: whoever holds the Link could
-        take the ciphertext and guess offline anyway. The 600,000 PBKDF2 iterations are what make
-        each guess slow, so pick a Passphrase that isn't a single common word.
-      </P>
+        take the ciphertext and guess offline anyway. The {iterations} PBKDF2 iterations are what
+        make each guess slow, so pick a Passphrase that isn't a single common word.
+      </Paragraph>
     </Section>
 
     <Section title="Expiry">
-      <P>
+      <Paragraph>
         You pick {expiryOptions}. An unrevealed Secret Burns at its Expiry: an alarm on its storage
         removes it, and a Reveal after the Expiry finds it gone even if the alarm hasn't run yet.
-      </P>
-      <P>
+      </Paragraph>
+      <Paragraph>
         Whatever happened, whether the Secret never existed, was already revealed or expired, the
         recipient sees the same message. The page doesn't say which.
-      </P>
+      </Paragraph>
     </Section>
 
     <Section title="No third-party code">
-      <P>
+      <Paragraph>
         Anything running on the page can read the Link key from the address bar, including a
         "harmless" analytics script. So the page loads only its own code: no analytics, no trackers,
         no CDN, and the fonts are hosted here.
-      </P>
-      <P>
+      </Paragraph>
+      <Paragraph>
         A strict Content Security Policy (<Code>default-src 'self'</Code>, no inline scripts,{" "}
         <Code>connect-src 'self'</Code>, <Code>frame-ancestors 'none'</Code>) makes the browser
         refuse anything else and stops other sites from framing the page.{" "}
         <Code>Referrer-Policy: no-referrer</Code> keeps the Link from being passed on when you click
         away, and API responses are never cached.
-      </P>
+      </Paragraph>
     </Section>
 
     <Section title="What I keep">
@@ -172,28 +191,28 @@ export const HowItWorks = () => (
           no content. That's how I know whether anyone uses this.
         </li>
         <li>
-          <strong>A rate limit.</strong> 20 Secrets per hour per IP address. To count them, I keep a
-          HMAC-SHA256 of your IP, keyed with a secret only my Worker holds, and a count, and delete
-          both when the hour is up. Without that secret, nobody with my storage can turn the hash
-          back into an IP by hashing every possible one.
+          <strong>A rate limit.</strong> {CREATES_PER_HOUR} Secrets per hour per IP address. To
+          count them, I keep an HMAC-SHA256 of your IP, keyed with a secret only my Worker holds,
+          and a count, and delete both when the hour is up. Without that secret, nobody with my
+          storage can turn the hash back into an IP by hashing every possible one.
         </li>
         <li>
-          <strong>A size cap.</strong> Up to 10 KB of text, checked in your browser before
-          encryption and again on the server.
+          <strong>A size cap.</strong> Up to {MAX_SECRET_LABEL} of text, checked in your browser
+          before encryption and again on the server.
         </li>
       </List>
-      <P>
+      <Paragraph>
         Cloudflare runs all of this, so like any host it sees your IP address to deliver the page.
-      </P>
+      </Paragraph>
     </Section>
 
     <Section title="Check it yourself">
-      <P>
-        The code is public at <A href={REPO}>github.com/tonytangdev/secret</A>, and each promise on
-        this page has a test there. It's licensed under{" "}
-        <A href={`${REPO}/blob/main/LICENSE`}>AGPL-3.0</A>: anyone who runs a modified copy as a
-        service has to publish their source too.
-      </P>
+      <Paragraph>
+        The code is public at <ExternalLink href={REPO}>github.com/tonytangdev/secret</ExternalLink>
+        , and each promise on this page has a test there. It's licensed under{" "}
+        <ExternalLink href={`${REPO}/blob/main/LICENSE`}>AGPL-3.0</ExternalLink>: anyone who runs a
+        modified copy as a service has to publish their source too.
+      </Paragraph>
     </Section>
   </article>
 )

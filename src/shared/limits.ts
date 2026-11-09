@@ -4,6 +4,9 @@
 /** The most a Secret may hold: 10 KB of UTF-8. */
 export const MAX_SECRET_BYTES = 10 * 1024
 
+/** The size cap as copy reads it: "10 KB". */
+export const MAX_SECRET_LABEL = `${String(MAX_SECRET_BYTES / 1024)} KB`
+
 const GCM_TAG_BYTES = 16
 
 /** base64url (no padding) of the largest allowed Secret plus its GCM tag. */

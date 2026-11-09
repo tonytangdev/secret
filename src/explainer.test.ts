@@ -65,11 +65,11 @@ describe("/how-it-works", () => {
     "PBKDF2",
     "HKDF",
     "HMAC-SHA256",
-    "1 hour",
-    "1 day",
-    "7 days",
-    "10 KB",
-    "20",
+    "128-bit salt",
+    "Secret IDs are 128 random bits",
+    "You pick 1 hour, 1 day (the default) or 7 days.",
+    "Up to 10 KB of text",
+    "20 Secrets per hour per IP address",
   ])("states %s", (fact) => {
     expect(page).toContain(fact)
   })
