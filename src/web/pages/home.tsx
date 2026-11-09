@@ -8,7 +8,7 @@ import { sendSecret } from "../secret-flow.ts"
 type State =
   | { readonly step: "editing"; readonly failed: boolean }
   | { readonly step: "creating" }
-  | { readonly step: "created"; readonly url: string }
+  | { readonly step: "created"; readonly url: string; readonly hasPassphrase: boolean }
 
 const linkUrl = (link: Link) => `${location.origin}${linkPath(link)}`
 
@@ -16,14 +16,21 @@ export const Home = () => {
   const run = useRun()
   const [state, setState] = useState<State>({ step: "editing", failed: false })
   const [plaintext, setPlaintext] = useState("")
+  const [passphrase, setPassphrase] = useState("")
 
   const create = async (event: Event) => {
     event.preventDefault()
     setState({ step: "creating" })
-    const result = await run(sendSecret(plaintext)).catch(() => Result.fail(undefined))
+    const options = passphrase === "" ? {} : { passphrase }
+    const result = await run(sendSecret(plaintext, options)).catch(() => Result.fail(undefined))
     if (Result.isSuccess(result)) {
       setPlaintext("")
-      setState({ step: "created", url: linkUrl(result.success) })
+      setPassphrase("")
+      setState({
+        step: "created",
+        url: linkUrl(result.success),
+        hasPassphrase: result.success.hasPassphrase,
+      })
     } else {
       setState({ step: "editing", failed: true })
     }
@@ -40,6 +47,7 @@ export const Home = () => {
       {state.step === "created" ? (
         <Created
           url={state.url}
+          hasPassphrase={state.hasPassphrase}
           onAnother={() => {
             setState({ step: "editing", failed: false })
           }}
@@ -66,6 +74,7 @@ export const Home = () => {
             }}
             class="block w-full rounded-md border border-line-strong bg-surface p-sm font-mono text-ink"
           />
+          <PassphraseField value={passphrase} onInput={setPassphrase} />
           {state.step === "editing" && state.failed ? (
             <p role="alert" class="text-body text-ink">
               I couldn't create the link, so nothing was saved. Check your connection and try again.
@@ -80,7 +89,44 @@ export const Home = () => {
   )
 }
 
-const Created = ({ url, onAnother }: { readonly url: string; readonly onAnother: () => void }) => (
+const PassphraseField = ({
+  value,
+  onInput,
+}: {
+  readonly value: string
+  readonly onInput: (value: string) => void
+}) => (
+  <div class="space-y-xs">
+    <label for="passphrase" class="block font-mono text-label uppercase text-muted">
+      Passphrase (optional)
+    </label>
+    <input
+      id="passphrase"
+      type="text"
+      autocomplete="off"
+      spellcheck={false}
+      aria-describedby="passphrase-hint"
+      value={value}
+      onInput={(e) => {
+        onInput(e.currentTarget.value)
+      }}
+      class="block w-full rounded-md border border-line-strong bg-surface p-sm font-mono text-ink"
+    />
+    <p id="passphrase-hint" class="text-body text-muted">
+      Share it through a different channel than the link, e.g. say it on a call.
+    </p>
+  </div>
+)
+
+const Created = ({
+  url,
+  hasPassphrase,
+  onAnother,
+}: {
+  readonly url: string
+  readonly hasPassphrase: boolean
+  readonly onAnother: () => void
+}) => (
   <div class="mt-lg space-y-sm">
     <label for="link" class="block font-mono text-label uppercase text-muted">
       Your link
@@ -96,6 +142,11 @@ const Created = ({ url, onAnother }: { readonly url: string; readonly onAnother:
     />
     <p class="text-body text-muted">
       It works once, then the secret is gone. Unopened, it expires in 1 day.
+    </p>
+    <p class="text-body text-muted">
+      {hasPassphrase
+        ? "Passphrase set: send it separately, not next to the link."
+        : "No passphrase: the link alone unlocks the secret."}
     </p>
     <div class="flex flex-wrap gap-sm">
       <CopyButton text={url} label="Copy link" />
