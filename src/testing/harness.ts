@@ -12,6 +12,7 @@ import { Api } from "../shared/api.ts"
 import { SecretCrypto } from "../shared/crypto.ts"
 import { ApiClient } from "../web/api-client.ts"
 import { ApiLive, webHandlerOptions } from "../worker/api.ts"
+import { type CreateRateLimit, CreateRateLimitMemory } from "../worker/create-rate-limit.ts"
 import type { SecretStore } from "../worker/secret-store.ts"
 import { SecretStoreMemory } from "../worker/secret-store-memory.ts"
 
@@ -24,6 +25,8 @@ export interface WireRequest {
 
 export interface HarnessOptions {
   readonly store?: Layer.Layer<SecretStore>
+  /** Defaults to the in-memory limiter at the production limit. */
+  readonly rateLimit?: Layer.Layer<CreateRateLimit>
 }
 
 const BASE_URL = "http://secret.test"
@@ -49,6 +52,7 @@ export class Harness extends Context.Service<
             HttpRouter.toWebHandler(
               ApiLive.pipe(
                 Layer.provide(options.store ?? SecretStoreMemory),
+                Layer.provide(options.rateLimit ?? CreateRateLimitMemory()),
                 Layer.provide(Layer.succeedContext(testContext)),
               ),
               webHandlerOptions,

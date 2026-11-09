@@ -4,8 +4,15 @@
 // interleave and at most one Reveal ever gets the Secret. An alarm at the Expiry Burns an
 // unrevealed Secret; until it fires, `take` treats a past-Expiry record as gone.
 import { DurableObject, env } from "cloudflare:workers"
-import { Effect, Layer } from "effect"
+import { Clock, Effect, Layer } from "effect"
 import { SecretGone, type StoredSecret } from "../shared/api.ts"
+import {
+  CreateRateLimit,
+  CREATES_PER_HOUR,
+  type QuotaWindow,
+  WINDOW_MILLIS,
+  countCreation,
+} from "./create-rate-limit.ts"
 import { SecretStore, newSecretId } from "./secret-store.ts"
 
 interface Entry {
@@ -14,6 +21,7 @@ interface Entry {
 }
 
 const KEY = "secret"
+const QUOTA_KEY = "window"
 
 export class SecretObject extends DurableObject {
   put(entry: Entry): Promise<void> {
@@ -34,11 +42,31 @@ export class SecretObject extends DurableObject {
   }
 }
 
+/**
+ * One CreateQuota per client, named by the hash of its IP (never the IP). `admit` is synchronous,
+ * so concurrent creations from one client are counted one at a time. An alarm at the end of the
+ * window deletes the count, so nothing about a client outlives the hour.
+ */
+export class CreateQuota extends DurableObject {
+  admit(now: number, limit: number): boolean {
+    const before = this.ctx.storage.kv.get<QuotaWindow>(QUOTA_KEY)
+    const { allowed, window } = countCreation(before, now, limit)
+    this.ctx.storage.kv.put(QUOTA_KEY, window)
+    if (window.start !== before?.start) void this.ctx.storage.setAlarm(window.start + WINDOW_MILLIS)
+    return allowed
+  }
+
+  override alarm(): Promise<void> {
+    return this.ctx.storage.deleteAll()
+  }
+}
+
 declare global {
   // oxlint-disable-next-line typescript/no-namespace -- workers-types declares bindings by merging into Cloudflare.Env
   namespace Cloudflare {
     interface Env {
       readonly SECRETS: DurableObjectNamespace<SecretObject>
+      readonly CREATE_QUOTA: DurableObjectNamespace<CreateQuota>
     }
   }
 }
@@ -59,6 +87,19 @@ export const SecretStoreDurableObject: Layer.Layer<SecretStore> = Layer.succeed(
         const secret = yield* Effect.promise(() => secretObject(id).take())
         if (secret === null) return yield* new SecretGone()
         return secret
+      }),
+  }),
+)
+
+export const CreateRateLimitDurableObject: Layer.Layer<CreateRateLimit> = Layer.succeed(
+  CreateRateLimit,
+  CreateRateLimit.of({
+    admit: (key) =>
+      Effect.gen(function* () {
+        const now = yield* Clock.currentTimeMillis
+        return yield* Effect.promise(() =>
+          env.CREATE_QUOTA.getByName(key).admit(now, CREATES_PER_HOUR),
+        )
       }),
   }),
 )

@@ -28,11 +28,24 @@ export class SecretGone extends Schema.TaggedError<SecretGone, { readonly brand:
   { httpApiStatus: 410 },
 ) {}
 
+/** The Secret is over the size cap. The browser checks first; the server checks again. */
+export class SecretTooLarge extends Schema.TaggedError<
+  SecretTooLarge,
+  { readonly brand: unique symbol }
+>()("SecretTooLarge", {}, { httpApiStatus: 413 }) {}
+
+/** Too many Secrets created from this IP lately; the sender should wait, not retry. */
+export class RateLimited extends Schema.TaggedError<
+  RateLimited,
+  { readonly brand: unique symbol }
+>()("RateLimited", {}, { httpApiStatus: 429 }) {}
+
 const Secrets = HttpApiGroup.make("secrets")
   .add(
     HttpApiEndpoint.post("create", "/secrets", {
       payload: CreateSecretBody,
       success: Schema.Struct({ id: SecretId }),
+      error: [SecretTooLarge, RateLimited],
     }),
     HttpApiEndpoint.post("reveal", "/secrets/reveal", {
       payload: Schema.Struct({ id: SecretId }),

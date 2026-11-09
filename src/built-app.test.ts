@@ -24,6 +24,9 @@ const AppPreview = Layer.effect(App)(
       (s) => Effect.promise(() => s.close()),
     )
     const base = (server.resolvedUrls?.local[0] ?? "").replace(/\/$/, "")
+    // Local Durable Object state persists between runs; a fresh documentation-range IP per run
+    // keeps earlier runs' creations from counting against this one's rate limit.
+    const ip = `2001:db8::${crypto.randomUUID().slice(0, 4)}`
     return {
       get: (path: string) =>
         Effect.promise(() =>
@@ -33,7 +36,7 @@ const AppPreview = Layer.effect(App)(
         Effect.promise(() =>
           fetch(base + path, {
             method: "POST",
-            headers: { "content-type": "application/json" },
+            headers: { "content-type": "application/json", "cf-connecting-ip": ip },
             body: JSON.stringify(body),
           }),
         ),
