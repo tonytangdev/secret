@@ -3,7 +3,9 @@ import { runDurableObjectAlarm, runInDurableObject } from "cloudflare:test"
 import { env } from "cloudflare:workers"
 import { assert, describe, it } from "@effect/vitest"
 import { Clock, Effect } from "effect"
-import { ClientKey, CreateRateLimit, CREATES_PER_HOUR, WINDOW_MILLIS } from "./create-rate-limit.ts"
+import { HOUR } from "../shared/expiry.ts"
+import { CREATES_PER_HOUR } from "../shared/limits.ts"
+import { ClientKey, CreateRateLimit } from "./create-rate-limit.ts"
 import { ClientKeyFromEnv, CreateRateLimitDurableObject } from "./durable-object.ts"
 
 describe("CreateQuota", () => {
@@ -32,8 +34,8 @@ describe("CreateQuota", () => {
       const alarm = yield* Effect.promise(() =>
         runInDurableObject(stub, (_object, state) => state.storage.getAlarm()),
       )
-      assert.isAtLeast(alarm ?? 0, start + WINDOW_MILLIS)
-      assert.isAtMost(alarm ?? 0, start + WINDOW_MILLIS + 5_000)
+      assert.isAtLeast(alarm ?? 0, start + HOUR)
+      assert.isAtMost(alarm ?? 0, start + HOUR + 5_000)
       assert.isTrue(yield* Effect.promise(() => runDurableObjectAlarm(stub)))
       assert.isTrue(yield* admit(key))
     }).pipe(Effect.provide(CreateRateLimitDurableObject)),

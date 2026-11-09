@@ -5,9 +5,8 @@
 // the secret the hash can't be reversed by hashing every possible IP.
 import { Clock, Context, Effect, Layer, Ref } from "effect"
 import { Base64Url } from "effect/encoding"
-
-export const CREATES_PER_HOUR = 20
-export const WINDOW_MILLIS = 60 * 60 * 1000
+import { HOUR } from "../shared/expiry.ts"
+import { CREATES_PER_HOUR } from "../shared/limits.ts"
 
 /** One client's count in its current window. */
 export interface QuotaWindow {
@@ -22,7 +21,7 @@ export const countCreation = (
   limit: number,
 ): { readonly allowed: boolean; readonly window: QuotaWindow } => {
   const current =
-    window === undefined || now >= window.start + WINDOW_MILLIS ? { start: now, count: 0 } : window
+    window === undefined || now >= window.start + HOUR ? { start: now, count: 0 } : window
   if (current.count >= limit) return { allowed: false, window: current }
   return { allowed: true, window: { start: current.start, count: current.count + 1 } }
 }

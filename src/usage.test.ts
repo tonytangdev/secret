@@ -3,6 +3,7 @@
 import { assert, describe, it } from "@effect/vitest"
 import { Effect } from "effect"
 import { TestClock } from "effect/testing"
+import { HOUR } from "./shared/expiry.ts"
 import { MAX_CIPHERTEXT_LENGTH } from "./shared/limits.ts"
 import { Harness } from "./testing/harness.ts"
 import { CreateRateLimitMemory } from "./worker/create-rate-limit.ts"
@@ -65,7 +66,7 @@ describe("Logs", () => {
       yield* revealSecret(link)
       yield* Effect.flip(revealSecret(link))
       const late = yield* sendSecret("late", { expiry: "1h" })
-      yield* TestClock.adjust(3_600_000)
+      yield* TestClock.adjust(HOUR)
       yield* Effect.flip(revealSecret(late))
       const logs = (yield* (yield* Harness).logs).join("\n")
       assert.notInclude(logs, link.id)

@@ -3,7 +3,8 @@
 // `it.live`; Expiry is expressed relative to `Clock`, so neither needs to move time.
 import { assert, describe, type it } from "@effect/vitest"
 import { Clock, Effect, type Layer, Result } from "effect"
-import type { StoredSecret } from "../shared/api.ts"
+import { SecretId, type StoredSecret } from "../shared/api.ts"
+import { HOUR } from "../shared/expiry.ts"
 import { SecretStore } from "../worker/secret-store.ts"
 
 const secret: StoredSecret = {
@@ -11,7 +12,6 @@ const secret: StoredSecret = {
   iv: "aXZpdml2aXZpdml2",
   hasPassphrase: false,
 }
-const HOUR = 3_600_000
 
 export const secretStoreContract = (
   name: string,
@@ -24,7 +24,7 @@ export const secretStoreContract = (
         const now = yield* Clock.currentTimeMillis
         return yield* (yield* SecretStore).put(secret, now + millis)
       })
-    const take = (id: string) => Effect.flatMap(SecretStore, (s) => s.take(id))
+    const take = (id: SecretId) => Effect.flatMap(SecretStore, (s) => s.take(id))
 
     test("take returns the Secret that was put", () =>
       Effect.gen(function* () {
@@ -41,7 +41,10 @@ export const secretStoreContract = (
 
     test("an ID that was never put is gone", () =>
       Effect.gen(function* () {
-        assert.strictEqual((yield* Effect.flip(take("A".repeat(22))))._tag, "SecretGone")
+        assert.strictEqual(
+          (yield* Effect.flip(take(SecretId.make("A".repeat(22)))))._tag,
+          "SecretGone",
+        )
       }).pipe(Effect.provide(store)))
 
     test("concurrent takes: exactly one gets the Secret", () =>
