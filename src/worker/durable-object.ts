@@ -2,7 +2,8 @@
 // One SecretObject per Secret, named by its ID (ADR-0002). SQLite-backed, so `ctx.storage.kv` is
 // synchronous: `take` reads and deletes with no `await` in between, so no other request can
 // interleave and at most one Reveal ever gets the Secret. An alarm at the Expiry Burns an
-// unrevealed Secret; until it fires, `take` treats a past-Expiry record as gone.
+// unrevealed Secret; until it fires, `take` treats a past-Expiry record as gone. Either way an
+// unrevealed Secret is counted `expired` exactly once (ADR-0005).
 import { DurableObject, env } from "cloudflare:workers"
 import { Clock, Effect, Layer } from "effect"
 import { SecretGone, type StoredSecret } from "../shared/api.ts"
@@ -14,6 +15,7 @@ import {
   countCreation,
 } from "./create-rate-limit.ts"
 import { SecretStore, newSecretId } from "./secret-store.ts"
+import { Usage, usageDataPoint } from "./usage.ts"
 
 interface Entry {
   readonly secret: StoredSecret
@@ -33,11 +35,16 @@ export class SecretObject extends DurableObject {
     const entry = this.ctx.storage.kv.get<Entry>(KEY)
     if (entry === undefined) return null
     this.ctx.storage.kv.delete(KEY)
-    return entry.expiresAt <= Date.now() ? null : entry.secret
+    if (entry.expiresAt > Date.now()) return entry.secret
+    env.USAGE.writeDataPoint(usageDataPoint("expired"))
+    return null
   }
 
   /** The Expiry passed unrevealed: Burn. `deleteAll` clears the alarm too. */
   override alarm(): Promise<void> {
+    if (this.ctx.storage.kv.get<Entry>(KEY) !== undefined) {
+      env.USAGE.writeDataPoint(usageDataPoint("expired"))
+    }
     return this.ctx.storage.deleteAll()
   }
 }
@@ -67,11 +74,18 @@ declare global {
     interface Env {
       readonly SECRETS: DurableObjectNamespace<SecretObject>
       readonly CREATE_QUOTA: DurableObjectNamespace<CreateQuota>
+      readonly USAGE: AnalyticsEngineDataset
     }
   }
 }
 
 const secretObject = (id: string) => env.SECRETS.getByName(id)
+
+export const UsageAnalyticsEngine: Layer.Layer<Usage> = Usage.layer({
+  writeDataPoint: (point) => {
+    env.USAGE.writeDataPoint(point)
+  },
+})
 
 export const SecretStoreDurableObject: Layer.Layer<SecretStore> = Layer.succeed(
   SecretStore,

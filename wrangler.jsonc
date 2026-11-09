@@ -21,6 +21,8 @@
     { "tag": "v1", "new_sqlite_classes": ["SecretObject"] },
     { "tag": "v2", "new_sqlite_classes": ["CreateQuota"] },
   ],
+  // Usage counts (ADR-0005): created / revealed / expired, nothing else.
+  "analytics_engine_datasets": [{ "binding": "USAGE", "dataset": "secret_usage" }],
   "routes": [{ "pattern": "secret.tonytang.dev", "custom_domain": true }],
   "workers_dev": false,
   "preview_urls": false,
