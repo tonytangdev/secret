@@ -4,9 +4,35 @@ import { type Link, linkPath } from "../../shared/link.ts"
 import { CopyButton } from "../copy-button.tsx"
 import { useRun } from "../run.ts"
 import { sendSecret } from "../secret-flow.ts"
+import { MAX_SECRET_BYTES, secretBytes } from "../../shared/limits.ts"
+
+/** Why the last attempt didn't create a Link: a typed failure's tag, or "failed" (network, server). */
+type Failure = "SecretEmpty" | "SecretTooLarge" | "RateLimited" | "failed"
+
+const FAILURE_COPY: Record<Failure, string> = {
+  SecretEmpty: "There's nothing to send yet. Type or paste your secret first.",
+  SecretTooLarge: "That's over the 10 KB limit, so I didn't send it. Shorten it and try again.",
+  RateLimited:
+    "You've created a lot of secrets in the last hour, so I'm holding off. Wait a while and try again.",
+  failed: "I couldn't create the link, so nothing was saved. Check your connection and try again.",
+}
+
+const failureOf = (error: { readonly _tag: string }): Failure => {
+  switch (error._tag) {
+    case "SecretEmpty":
+    case "SecretTooLarge":
+    case "RateLimited":
+      return error._tag
+    default:
+      return "failed"
+  }
+}
+
+const size = (bytes: number) =>
+  bytes < 1024 ? `${String(bytes)} bytes` : `${(Math.ceil(bytes / 102.4) / 10).toFixed(1)} KB`
 
 type State =
-  | { readonly step: "editing"; readonly failed: boolean }
+  | { readonly step: "editing"; readonly failure: Failure | null }
   | { readonly step: "creating" }
   | { readonly step: "created"; readonly url: string }
 
@@ -14,18 +40,23 @@ const linkUrl = (link: Link) => `${location.origin}${linkPath(link)}`
 
 export const Home = () => {
   const run = useRun()
-  const [state, setState] = useState<State>({ step: "editing", failed: false })
+  const [state, setState] = useState<State>({ step: "editing", failure: null })
   const [plaintext, setPlaintext] = useState("")
+  const used = secretBytes(plaintext)
+  const tooLarge = used > MAX_SECRET_BYTES
 
   const create = async (event: Event) => {
     event.preventDefault()
     setState({ step: "creating" })
-    const result = await run(sendSecret(plaintext)).catch(() => Result.fail(undefined))
-    if (Result.isSuccess(result)) {
+    // A rejected run is a defect (e.g. the network died mid-request): "failed" like any other.
+    const result = await run(sendSecret(plaintext)).catch(() => undefined)
+    if (result === undefined) {
+      setState({ step: "editing", failure: "failed" })
+    } else if (Result.isSuccess(result)) {
       setPlaintext("")
       setState({ step: "created", url: linkUrl(result.success) })
     } else {
-      setState({ step: "editing", failed: true })
+      setState({ step: "editing", failure: failureOf(result.failure) })
     }
   }
 
@@ -41,7 +72,7 @@ export const Home = () => {
         <Created
           url={state.url}
           onAnother={() => {
-            setState({ step: "editing", failed: false })
+            setState({ step: "editing", failure: null })
           }}
         />
       ) : (
@@ -60,18 +91,30 @@ export const Home = () => {
             rows={6}
             autocomplete="off"
             spellcheck={false}
+            aria-describedby="secret-size"
             value={plaintext}
             onInput={(e) => {
               setPlaintext(e.currentTarget.value)
             }}
             class="block w-full rounded-md border border-line-strong bg-surface p-sm font-mono text-ink"
           />
-          {state.step === "editing" && state.failed ? (
+          <p
+            id="secret-size"
+            aria-live="polite"
+            class={`font-mono text-label ${tooLarge ? "font-bold text-ink-strong" : "text-muted"}`}
+          >
+            {size(used)} of 10 KB used{tooLarge ? ". Too large to send." : ""}
+          </p>
+          {state.step === "editing" && state.failure !== null ? (
             <p role="alert" class="text-body text-ink">
-              I couldn't create the link, so nothing was saved. Check your connection and try again.
+              {FAILURE_COPY[state.failure]}
             </p>
           ) : null}
-          <button type="submit" class="btn" disabled={state.step === "creating"}>
+          <button
+            type="submit"
+            class="btn"
+            disabled={state.step === "creating" || tooLarge || plaintext.trim() === ""}
+          >
             {state.step === "creating" ? "Encrypting…" : "Create link"}
           </button>
         </form>

@@ -10,8 +10,17 @@
     "run_worker_first": ["/api/*"],
   },
   // One SecretObject per Secret (ADR-0002); SQLite-backed for synchronous storage.
-  "durable_objects": { "bindings": [{ "name": "SECRETS", "class_name": "SecretObject" }] },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["SecretObject"] }],
+  // Plus one CreateQuota per client IP hash: the hourly creation limit (spec amendment 1).
+  "durable_objects": {
+    "bindings": [
+      { "name": "SECRETS", "class_name": "SecretObject" },
+      { "name": "CREATE_QUOTA", "class_name": "CreateQuota" },
+    ],
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["SecretObject"] },
+    { "tag": "v2", "new_sqlite_classes": ["CreateQuota"] },
+  ],
   "routes": [{ "pattern": "secret.tonytang.dev", "custom_domain": true }],
   "workers_dev": false,
   "preview_urls": false,

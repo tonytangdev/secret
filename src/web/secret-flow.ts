@@ -1,12 +1,18 @@
 // The browser's Effect program: what the send form and the Reveal page do, minus the UI.
-import { Effect } from "effect"
+import { Data, Effect } from "effect"
 import type { Link } from "../shared/link.ts"
 import { SecretCrypto } from "../shared/crypto.ts"
-import type { StoredSecret } from "../shared/api.ts"
+import { SecretTooLarge, type StoredSecret } from "../shared/api.ts"
+import { MAX_SECRET_BYTES, secretBytes } from "../shared/limits.ts"
 import { ApiClient } from "./api-client.ts"
+
+/** The Secret is empty or only whitespace; a Link to it would be useless. */
+class SecretEmpty extends Data.TaggedError("SecretEmpty") {}
 
 /** Encrypts the Secret in the browser, stores only the ciphertext, and returns its Link. */
 export const sendSecret = Effect.fn("sendSecret")(function* (plaintext: string) {
+  if (plaintext.trim() === "") return yield* new SecretEmpty()
+  if (secretBytes(plaintext) > MAX_SECRET_BYTES) return yield* new SecretTooLarge()
   const secretCrypto = yield* SecretCrypto
   const api = yield* ApiClient
   const { linkKey, ciphertext, iv } = yield* secretCrypto.encrypt(plaintext)
