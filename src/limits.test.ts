@@ -117,3 +117,47 @@ describe("rate limit on creation", () => {
     }).pipe(Effect.provide(harness)),
   )
 })
+
+describe("the server stores only what the browser would send", () => {
+  const IV = "aXZpdml2aXZpdml2" // 12 bytes
+  const SALT = "c2FsdHNhbHRzYWx0c2FsdA" // 16 bytes
+  const createRaw = (body: Record<string, unknown>) =>
+    Effect.gen(function* () {
+      const res = yield* (yield* Harness).fetch("/api/secrets", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ciphertext: "Y2lwaGVy", iv: IV, expiry: "1d", ...body }),
+      })
+      return { status: res.status, text: yield* Effect.promise(() => res.text()) }
+    })
+
+  it.effect("well-formed Secrets, with and without a Passphrase, are stored", () =>
+    Effect.gen(function* () {
+      assert.strictEqual((yield* createRaw({ hasPassphrase: false })).status, 200)
+      assert.strictEqual((yield* createRaw({ hasPassphrase: true, salt: SALT })).status, 200)
+    }).pipe(Effect.provide(Harness.layer())),
+  )
+
+  it.effect.each([
+    ["an IV longer than 12 bytes", { iv: "A".repeat(10_000), hasPassphrase: false }],
+    ["an IV shorter than 12 bytes", { iv: "aXZpdml2", hasPassphrase: false }],
+    ["a salt longer than 16 bytes", { hasPassphrase: true, salt: "A".repeat(10_000) }],
+    ["a salt shorter than 16 bytes", { hasPassphrase: true, salt: "c2FsdA" }],
+    ["a padded salt", { hasPassphrase: true, salt: `${SALT}==` }],
+  ] as const)("%s is a bad request (400)", ([, body]) =>
+    Effect.gen(function* () {
+      assert.strictEqual((yield* createRaw(body)).status, 400)
+    }).pipe(Effect.provide(Harness.layer())),
+  )
+
+  it.effect.each([
+    ["a salt without hasPassphrase", { hasPassphrase: false, salt: SALT }],
+    ["hasPassphrase without a salt", { hasPassphrase: true }],
+  ] as const)("%s fails with MalformedSecret (400)", ([, body]) =>
+    Effect.gen(function* () {
+      const res = yield* createRaw(body)
+      assert.strictEqual(res.status, 400)
+      assert.deepStrictEqual(JSON.parse(res.text), { _tag: "MalformedSecret" })
+    }).pipe(Effect.provide(Harness.layer())),
+  )
+})

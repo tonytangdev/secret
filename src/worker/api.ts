@@ -3,7 +3,7 @@
 import { Clock, Effect, Layer } from "effect"
 import { HttpEffect, HttpRouter, HttpServer, HttpServerResponse } from "effect/http"
 import { HttpApiBuilder } from "effect/http-api"
-import { Api, RateLimited, SecretTooLarge } from "../shared/api.ts"
+import { Api, MalformedSecret, RateLimited, SecretTooLarge } from "../shared/api.ts"
 import { MAX_CIPHERTEXT_LENGTH } from "../shared/limits.ts"
 import { API_HEADERS } from "../shared/security-headers.ts"
 import { expiryMillis } from "../shared/expiry.ts"
@@ -20,6 +20,9 @@ const SecretsLive = HttpApiBuilder.group(Api, "secrets", (handlers) =>
       .handle("create", ({ payload: { expiry, ...secret }, request }) =>
         Effect.gen(function* () {
           if (secret.ciphertext.length > MAX_CIPHERTEXT_LENGTH) return yield* new SecretTooLarge()
+          if ((secret.salt !== undefined) !== secret.hasPassphrase) {
+            return yield* new MalformedSecret()
+          }
           const key = yield* clientKey(request.headers["cf-connecting-ip"] ?? "unknown")
           if (!(yield* rateLimit.admit(key))) return yield* new RateLimited()
           const now = yield* Clock.currentTimeMillis
