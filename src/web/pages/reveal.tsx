@@ -1,5 +1,5 @@
 import { Result } from "effect"
-import { useState } from "preact/hooks"
+import { useEffect, useState } from "preact/hooks"
 import type { StoredSecret } from "../../shared/api.ts"
 import { type Link, parseLink } from "../../shared/link.ts"
 import { CopyButton } from "../copy-button.tsx"
@@ -26,6 +26,19 @@ const initialState = (id: string): State =>
 export const Reveal = ({ id = "" }: { readonly id?: string }) => {
   const run = useRun()
   const [state, setState] = useState<State>(() => initialState(id))
+  // A Link pasted into this tab again may change only the fragment, which doesn't reload the page.
+  useEffect(() => {
+    const reread = () => {
+      // Never drop a Secret that's already been taken: it exists only in this tab.
+      setState((current) =>
+        current.step === "revealing" || current.step === "revealed" ? current : initialState(id),
+      )
+    }
+    addEventListener("hashchange", reread)
+    return () => {
+      removeEventListener("hashchange", reread)
+    }
+  }, [id])
 
   const reveal = async (link: Link) => {
     setState({ step: "revealing" })
