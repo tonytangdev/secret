@@ -102,9 +102,9 @@ describe("with a Passphrase", () => {
     Effect.gen(function* () {
       const link = yield* sendSecret("behind a door", { passphrase: "open sesame" })
       const taken = yield* takeSecret(link)
-      const wrong = yield* Effect.flip(unlockSecret(taken, link, "open sesam"))
+      const wrong = yield* Effect.flip(unlockSecret(taken, "open sesam"))
       assert.strictEqual(wrong._tag, "WrongPassphrase")
-      assert.strictEqual(yield* unlockSecret(taken, link, "open sesame"), "behind a door")
+      assert.strictEqual(yield* unlockSecret(taken, "open sesame"), "behind a door")
       const requests = yield* (yield* Harness).requests
       assert.strictEqual(requests.filter((r) => r.url.endsWith("/reveal")).length, 1)
     }).pipe(Effect.provide(Harness.layer())),
