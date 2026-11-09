@@ -4,14 +4,17 @@
 import { readdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it, layer } from "@effect/vitest"
-import { Context, Effect, Layer } from "effect"
+import { Context, Effect, Layer, Schema } from "effect"
 import { preview } from "vite"
 
 const clientDir = join(import.meta.dirname, "../dist/client")
 
 class App extends Context.Service<
   App,
-  { readonly get: (path: string) => Effect.Effect<Response> }
+  {
+    readonly get: (path: string) => Effect.Effect<Response>
+    readonly post: (path: string, body: unknown) => Effect.Effect<Response>
+  }
 >()("App") {}
 
 const AppPreview = Layer.effect(App)(
@@ -25,6 +28,14 @@ const AppPreview = Layer.effect(App)(
       get: (path: string) =>
         Effect.promise(() =>
           fetch(base + path, { headers: { accept: "text/html", "sec-fetch-mode": "navigate" } }),
+        ),
+      post: (path: string, body: unknown) =>
+        Effect.promise(() =>
+          fetch(base + path, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(body),
+          }),
         ),
     }
   }),
@@ -71,6 +82,29 @@ layer(AppPreview, { timeout: 60_000 })("built app", (app) => {
       expect(body).toEqual({ status: "ok" })
       expect(res.headers.get("cache-control")).toBe("no-store")
       expectHardened(res)
+    }),
+  )
+
+  app.effect("keeps a Secret in a Durable Object until exactly one Reveal takes it", () =>
+    Effect.gen(function* () {
+      const server = yield* App
+      const stored = { ciphertext: "Y2lwaGVy", iv: "aXZpdml2aXZpdml2", hasPassphrase: false }
+      const created = yield* server.post("/api/secrets", { ...stored, expiry: "1d" })
+      const { id } = yield* Effect.promise(() => created.text()).pipe(
+        Effect.flatMap(
+          Schema.decodeUnknownEffect(Schema.fromJsonString(Schema.Struct({ id: Schema.String }))),
+        ),
+      )
+      const reveals = yield* Effect.forEach(
+        [1, 2, 3],
+        () =>
+          Effect.flatMap(server.post("/api/secrets/reveal", { id }), (res) =>
+            Effect.promise(() => res.text().then((text) => ({ status: res.status, text }))),
+          ),
+        { concurrency: "unbounded" },
+      )
+      expect(reveals.map((r) => r.status).sort((a, b) => a - b)).toEqual([200, 410, 410])
+      expect(reveals.find((r) => r.status === 200)?.text).toBe(JSON.stringify(stored))
     }),
   )
 
