@@ -13,6 +13,8 @@ export const SecretId = Schema.String.check(Schema.isPattern(/^[A-Za-z0-9_-]{22}
 export const StoredSecret = Schema.Struct({
   ciphertext: Base64Url,
   iv: Base64Url,
+  /** PBKDF2 salt; present iff the Secret has a Passphrase. */
+  salt: Schema.optionalKey(Base64Url),
   hasPassphrase: Schema.Boolean,
 })
 export type StoredSecret = typeof StoredSecret.Type

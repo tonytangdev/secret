@@ -3,7 +3,7 @@
 import { assert, describe, it } from "@effect/vitest"
 import { Effect, Result } from "effect"
 import { linkPath, parseLink } from "./shared/link.ts"
-import { revealSecret, sendSecret } from "./web/secret-flow.ts"
+import { revealSecret, sendSecret, takeSecret, unlockSecret } from "./web/secret-flow.ts"
 import { Harness } from "./testing/harness.ts"
 
 describe("send → Reveal", () => {
@@ -81,6 +81,69 @@ describe("send → Reveal", () => {
   )
 })
 
+describe("with a Passphrase", () => {
+  it.effect("the recipient gets the Secret back with the Link and the Passphrase", () =>
+    Effect.gen(function* () {
+      const link = yield* sendSecret("behind a door", { passphrase: "open sesame" })
+      assert.strictEqual(yield* revealSecret(link, "open sesame"), "behind a door")
+    }).pipe(Effect.provide(Harness.layer())),
+  )
+
+  it.effect("the Link alone doesn't unlock the Secret", () =>
+    Effect.gen(function* () {
+      const link = yield* sendSecret("behind a door", { passphrase: "open sesame" })
+      const failure = yield* Effect.flip(revealSecret(link))
+      assert.strictEqual(failure._tag, "DecryptionFailed")
+    }).pipe(Effect.provide(Harness.layer())),
+  )
+
+  it.effect("a wrong Passphrase can be retried without a second Reveal", () =>
+    Effect.gen(function* () {
+      const link = yield* sendSecret("behind a door", { passphrase: "open sesame" })
+      const taken = yield* takeSecret(link)
+      const wrong = yield* Effect.flip(unlockSecret(taken, link, "open sesam"))
+      assert.strictEqual(wrong._tag, "WrongPassphrase")
+      assert.strictEqual(yield* unlockSecret(taken, link, "open sesame"), "behind a door")
+      const requests = yield* (yield* Harness).requests
+      assert.strictEqual(requests.filter((r) => r.url.endsWith("/reveal")).length, 1)
+    }).pipe(Effect.provide(Harness.layer())),
+  )
+
+  it.effect("the Link says a Passphrase is needed, and the server keeps the flag", () =>
+    Effect.gen(function* () {
+      const link = yield* sendSecret("behind a door", { passphrase: "open sesame" })
+      const [path = "", hash = ""] = linkPath(link).split("#")
+      const opened = yield* Effect.fromResult(parseLink(path.replace("/s/", ""), `#${hash}`))
+      assert.isTrue(opened.hasPassphrase)
+      const taken = yield* takeSecret(opened)
+      assert.isTrue(taken.hasPassphrase)
+      assert.match(taken.salt ?? "", /^[A-Za-z0-9_-]{22}$/)
+    }).pipe(Effect.provide(Harness.layer())),
+  )
+
+  it.effect("a Link without a Passphrase says none is needed", () =>
+    Effect.gen(function* () {
+      const link = yield* sendSecret("open")
+      const [path = "", hash = ""] = linkPath(link).split("#")
+      const opened = yield* Effect.fromResult(parseLink(path.replace("/s/", ""), `#${hash}`))
+      assert.isFalse(opened.hasPassphrase)
+      const taken = yield* takeSecret(opened)
+      assert.isFalse(taken.hasPassphrase)
+      assert.isUndefined(taken.salt)
+    }).pipe(Effect.provide(Harness.layer())),
+  )
+
+  it.effect("the Passphrase is never sent to the server", () =>
+    Effect.gen(function* () {
+      const link = yield* sendSecret("behind a door", { passphrase: "open sesame" })
+      yield* revealSecret(link, "open sesame")
+      for (const request of yield* (yield* Harness).requests) {
+        assert.notInclude(request.url + request.body, "open sesame")
+      }
+    }).pipe(Effect.provide(Harness.layer())),
+  )
+})
+
 describe("opening a Link", () => {
   it.effect("reads the Link back from the page's path and fragment", () =>
     Effect.gen(function* () {
@@ -91,15 +154,21 @@ describe("opening a Link", () => {
     }).pipe(Effect.provide(Harness.layer())),
   )
 
-  it.effect.each(["", "#", "#tooShort", "#" + "A".repeat(42) + "!", "#" + "A".repeat(44)])(
-    "rejects the Link key %j before anything is sent",
-    (hash) =>
-      Effect.gen(function* () {
-        const link = yield* sendSecret("still here")
-        const failure = yield* Effect.flip(Effect.fromResult(parseLink(link.id, hash)))
-        assert.strictEqual(failure._tag, "MalformedLinkKey")
-        assert.strictEqual(yield* revealSecret(link), "still here")
-      }).pipe(Effect.provide(Harness.layer())),
+  it.effect.each([
+    "",
+    "#",
+    "#tooShort",
+    "#" + "A".repeat(42) + "!",
+    "#" + "A".repeat(44),
+    "#.p",
+    "#" + "A".repeat(43) + ".x",
+  ])("rejects the Link key %j before anything is sent", (hash) =>
+    Effect.gen(function* () {
+      const link = yield* sendSecret("still here")
+      const failure = yield* Effect.flip(Effect.fromResult(parseLink(link.id, hash)))
+      assert.strictEqual(failure._tag, "MalformedLinkKey")
+      assert.strictEqual(yield* revealSecret(link), "still here")
+    }).pipe(Effect.provide(Harness.layer())),
   )
 })
 
