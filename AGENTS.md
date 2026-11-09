@@ -11,6 +11,8 @@ One package, three folders:
 - `src/web`: the browser app. Never imports `worker`.
 - `tools/`: plain-Node scripts and the local oxlint plugin (`tools/oxlint-plugin`).
 
+Build and run: `npm run dev` (Vite + Worker in workerd), `npm run build` (writes `dist/client` and `dist/secret`), `npm run preview` (the build in workerd). Cloudflare sends only `/api/*` to the Worker (`run_worker_first`); everything else is a static asset with SPA fallback. Asset headers come from `_headers`, which `vite.config.ts` generates from `SECURITY_HEADERS` in `src/shared/security-headers.ts`, so change headers there. Merges to `main` deploy via CI (`wrangler deploy`); never deploy by hand.
+
 Each folder is its own TypeScript program (`tsconfig.{shared,worker,web,tools}.json`). Tests (`*.test.ts`) belong to the tools program.
 
 ## Rules
@@ -19,5 +21,6 @@ Each folder is its own TypeScript program (`tsconfig.{shared,worker,web,tools}.j
 - Always run lint as `effect-tsgo oxlint` (`npm run lint`). Plain `oxlint` rejects the config.
 - In `src/shared` and `src/worker`, all of these are lint errors: `async`/`await`, `try`/`catch`, `throw`, `new Promise`, `any`, `as` casts (`as const` is fine), and `JSON.parse`. Use Effect (`Effect.gen`, `Effect.try`, `Effect.fail`, `Schema`) instead. `Effect.run*` is allowed only in entry files (`src/worker/index.ts`, `src/web/main.ts(x)`). `src/web` may use `async` where it calls into Effect.
 - Every `oxlint-disable` comment needs `-- reason`. Unused disable comments are errors.
-- Write tests first with `@effect/vitest` (`it.effect`).
+- Write tests first with `@effect/vitest` (`it.effect`). `npm test` runs `vite build` first because `src/built-app.test.ts` tests the built app under `vite preview`.
+- The CSP forbids inline scripts and `data:` URIs: no `dangerouslySetInnerHTML`, no inline `<script>`, keep `assetsInlineLimit: 0`, and load nothing from other origins.
 - Versions are pinned exactly (`.npmrc` has `save-exact=true`). `typescript`, `oxlint`, `oxlint-tsgolint` and `@effect/tsgo` only work at matching versions, so check the supported-versions table in `@effect/tsgo`'s README before bumping any of them, and bump them together.

@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "entry": ["src/worker/index.ts", "src/web/main.ts", "src/shared/index.ts"],
-  "project": ["src/**/*.{ts,tsx}", "tools/**/*.{js,mjs}"],
+  "entry": ["src/shared/index.ts"],
+  "project": ["src/**/*.{ts,tsx,css}", "tools/**/*.{js,mjs}"],
   "ignoreDependencies": ["oxlint", "oxlint-tsgolint", "@effect/language-service"]
 }

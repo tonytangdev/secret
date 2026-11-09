@@ -1,2 +1,2 @@
-// Code shared by the Worker and the browser (API contract, schemas). Filled in by later tickets.
-export {}
+// Code shared by the Worker and the browser (API contract, schemas).
+export { API_HEADERS, SECURITY_HEADERS } from "./security-headers.ts"
