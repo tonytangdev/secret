@@ -19,7 +19,7 @@
     "plugins": [
       {
         "name": "@effect/language-service",
-        "allowedUnstableApis": ["@effect/vitest"],
+        "allowedUnstableApis": ["@effect/vitest", "effect/http", "effect/http-api"],
         "ignoreEffectWarningsInTscExitCode": false,
         "ignoreEffectErrorsInTscExitCode": false
       }
