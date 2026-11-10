@@ -3,8 +3,10 @@ import { useState } from "preact/hooks"
 import { DEFAULT_EXPIRY, EXPIRY_LABEL, Expiry } from "../../shared/expiry.ts"
 import { type Link, linkPath } from "../../shared/link.ts"
 import { CopyButton } from "../copy-button.tsx"
+import { Encrypting, holdDone, scrambleDone, useInView } from "../encrypting.tsx"
 import { FAILURE_COPY, failureOf } from "../failure-copy.ts"
 import { FIELD_CLASS } from "../field.ts"
+import { Mascot } from "../logo.tsx"
 import { useRun } from "../run.ts"
 import { sendSecret } from "../secret-flow.ts"
 import { HomeGuide } from "./home-guide.tsx"
@@ -21,7 +23,7 @@ const formatSize = (bytes: number) =>
 
 type State =
   | { readonly step: "editing"; readonly failure: Failure | null }
-  | { readonly step: "creating" }
+  | { readonly step: "creating"; readonly stored: boolean }
   | {
       readonly step: "created"
       readonly url: string
@@ -42,7 +44,8 @@ export const Home = () => {
 
   const create = async (event: Event) => {
     event.preventDefault()
-    setState({ step: "creating" })
+    const started = performance.now()
+    setState({ step: "creating", stored: false })
     const options = passphrase === "" ? { expiry } : { expiry, passphrase }
     // A rejected run is a defect (e.g. the network died mid-request): "sendFailed" like any other.
     const result = await run(sendSecret(plaintext, options)).catch(() => undefined)
@@ -51,6 +54,10 @@ export const Home = () => {
     } else if (Result.isSuccess(result)) {
       setPlaintext("")
       setPassphrase("")
+      // Let the animation finish and show its last check before the Link replaces it.
+      await scrambleDone(started)
+      setState({ step: "creating", stored: true })
+      await holdDone()
       setState({
         step: "created",
         url: linkUrl(result.success),
@@ -97,7 +104,8 @@ export const Home = () => {
             </a>
           </p>
         </div>
-        <div class="card p-md sm:p-lg">
+        <div class="card relative isolate overflow-hidden p-md sm:p-lg">
+          {state.step === "creating" ? <Encrypting stored={state.stored} /> : null}
           {state.step === "created" ? (
             <Created
               url={state.url}
@@ -110,6 +118,7 @@ export const Home = () => {
           ) : (
             <form
               class="space-y-md"
+              inert={state.step === "creating"}
               onSubmit={(event) => {
                 void create(event)
               }}
@@ -241,8 +250,11 @@ const Created = ({
   readonly hasPassphrase: boolean
   readonly onAnother: () => void
 }) => (
-  <div class="space-y-sm">
-    <p class="font-display text-title text-ink-strong">Your link is ready.</p>
+  <div ref={useInView()} class="animate-rise scroll-mt-24 space-y-sm">
+    <div class="flex items-center justify-between gap-sm">
+      <p class="font-display text-title text-ink-strong">Your link is ready.</p>
+      <Mascot mood="shades" />
+    </div>
     <label for="link" class="block font-mono text-label uppercase text-muted">
       Your link
     </label>

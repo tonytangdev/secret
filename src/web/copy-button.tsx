@@ -1,6 +1,7 @@
 import { useEffect, useState } from "preact/hooks"
+import { CheckIcon } from "./check-icon.tsx"
 
-/** Copies `text` and confirms with "Copied" for a moment. */
+/** Copies `text` and confirms with a check and "Copied" for a moment. */
 export const CopyButton = ({ text, label }: { readonly text: string; readonly label: string }) => {
   const [copied, setCopied] = useState(false)
   useEffect(() => {
@@ -19,11 +20,12 @@ export const CopyButton = ({ text, label }: { readonly text: string; readonly la
   return (
     <button
       type="button"
-      class="btn"
+      class={`btn inline-flex items-center gap-xs ${copied ? "animate-ring" : ""}`}
       onClick={() => {
         void copy()
       }}
     >
+      {copied ? <CheckIcon class="size-5" /> : null}
       <span aria-live="polite">{copied ? "Copied" : label}</span>
     </button>
   )

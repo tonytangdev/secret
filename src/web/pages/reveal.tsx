@@ -1,9 +1,11 @@
 import { Result } from "effect"
-import { useEffect, useState } from "preact/hooks"
+import { useCallback, useEffect, useState } from "preact/hooks"
 import { type Link, parseLink } from "../../shared/link.ts"
 import { CopyButton } from "../copy-button.tsx"
+import { Decoded, Decrypting, holdDone, scrambleDone } from "../encrypting.tsx"
 import { FAILURE_COPY, failureOf } from "../failure-copy.ts"
 import { FIELD_CLASS } from "../field.ts"
+import { Mascot } from "../logo.tsx"
 import { useRun } from "../run.ts"
 import { type TakenSecret, takeSecret, unlockSecret } from "../secret-flow.ts"
 
@@ -18,6 +20,7 @@ type State =
       readonly taken: TakenSecret
       readonly attempt: "none" | "unlocking" | "wrong"
     }
+  | { readonly step: "decrypting"; readonly hasPassphrase: boolean }
   | { readonly step: "revealed"; readonly secret: string }
   | { readonly step: "ended"; readonly ending: Ending }
   | { readonly step: "failed"; readonly link: Link }
@@ -33,6 +36,9 @@ const initialState = (id: string): State =>
     }),
   })
 
+/** Steps where the Secret is already taken and exists only in this tab. */
+const HOLDS_SECRET: ReadonlyArray<State["step"]> = ["revealing", "locked", "decrypting", "revealed"]
+
 export const Reveal = ({ id = "" }: { readonly id?: string }) => {
   const run = useRun()
   const [state, setState] = useState<State>(() => initialState(id))
@@ -40,11 +46,7 @@ export const Reveal = ({ id = "" }: { readonly id?: string }) => {
   useEffect(() => {
     const reread = () => {
       // Never drop a Secret that's already been taken: it exists only in this tab.
-      setState((current) =>
-        current.step === "revealing" || current.step === "locked" || current.step === "revealed"
-          ? current
-          : initialState(id),
-      )
+      setState((current) => (HOLDS_SECRET.includes(current.step) ? current : initialState(id)))
     }
     addEventListener("hashchange", reread)
     return () => {
@@ -67,7 +69,18 @@ export const Reveal = ({ id = "" }: { readonly id?: string }) => {
       setState({ step: "locked", taken: taken.success, attempt: "none" })
       return
     }
-    setState(await unlock(taken.success))
+    await finish(await unlock(taken.success), false)
+  }
+
+  /** Plays the decrypting animation before a Secret that's already unlocked is handed over. */
+  const finish = async (next: State, hasPassphrase: boolean) => {
+    if (next.step === "revealed") {
+      const started = performance.now()
+      setState({ step: "decrypting", hasPassphrase })
+      await scrambleDone(started)
+      await holdDone()
+    }
+    setState(next)
   }
 
   const unlock = async (taken: TakenSecret, passphrase?: string): Promise<State> => {
@@ -81,7 +94,7 @@ export const Reveal = ({ id = "" }: { readonly id?: string }) => {
 
   const tryPassphrase = async (taken: TakenSecret, passphrase: string) => {
     setState({ step: "locked", taken, attempt: "unlocking" })
-    setState(await unlock(taken, passphrase))
+    await finish(await unlock(taken, passphrase), true)
   }
 
   switch (state.step) {
@@ -90,6 +103,7 @@ export const Reveal = ({ id = "" }: { readonly id?: string }) => {
     case "failed":
       return (
         <section>
+          <Mascot mood="shades" class="mb-md w-24" />
           <h1 class="text-headline text-ink-strong">Someone sent you a secret.</h1>
           <p class="mt-md text-body text-muted">
             It can be revealed only once. Reveal it when you're ready to save it somewhere safe.
@@ -125,6 +139,8 @@ export const Reveal = ({ id = "" }: { readonly id?: string }) => {
           }}
         />
       )
+    case "decrypting":
+      return <Decrypting hasPassphrase={state.hasPassphrase} />
     case "revealed":
       return <Revealed secret={state.secret} />
     case "ended":
@@ -142,6 +158,7 @@ const Locked = ({
   const [passphrase, setPassphrase] = useState("")
   return (
     <section>
+      <Mascot mood="shades" class="mb-md w-24" />
       <h1 class="text-headline text-ink-strong">Enter the passphrase.</h1>
       <p role="status" class="mt-md text-body text-ink">
         The secret is gone from the server and now exists only in this tab. Don't close this tab
@@ -183,9 +200,14 @@ const Locked = ({
 }
 
 const Revealed = ({ secret }: { readonly secret: string }) => {
-  const [shown, setShown] = useState(false)
+  const [view, setView] = useState<"hidden" | "shown" | "hiding">("hidden")
+  const shown = view === "shown"
+  const hide = useCallback(() => {
+    setView("hidden")
+  }, [])
   return (
-    <section>
+    <section class="animate-rise">
+      <Mascot mood={shown ? "peek" : "shades"} class="mb-md w-24" />
       <h1 class="text-headline text-ink-strong">Here's your secret.</h1>
       <p role="status" class="mt-md text-body text-muted">
         It's gone from the server. It now exists only in this tab, so save it before you close it.
@@ -195,7 +217,11 @@ const Revealed = ({ secret }: { readonly secret: string }) => {
         aria-label="Secret"
         class="mt-lg min-h-24 whitespace-pre-wrap break-all rounded-md border border-line-strong bg-surface p-sm font-mono text-ink"
       >
-        {shown ? secret : "•••••••• (hidden)"}
+        {view === "hidden" ? (
+          "•••••••• (hidden)"
+        ) : (
+          <Decoded key={view} secret={secret} hiding={view === "hiding"} onHidden={hide} />
+        )}
       </div>
       <div class="mt-sm flex flex-wrap gap-sm">
         <CopyButton text={secret} label="Copy secret" />
@@ -205,7 +231,7 @@ const Revealed = ({ secret }: { readonly secret: string }) => {
           aria-controls="secret"
           aria-pressed={shown}
           onClick={() => {
-            setShown(!shown)
+            setView(shown ? "hiding" : "shown")
           }}
         >
           {shown ? "Hide" : "Show"}

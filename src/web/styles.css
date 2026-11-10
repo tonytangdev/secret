@@ -113,6 +113,40 @@
   /* motion + the one hover shadow */
   --ease-brand: cubic-bezier(0.2, 0.8, 0.2, 1);
   --shadow-lift: 0 12px 30px oklch(0.2 0.02 255 / 0.08);
+
+  /* The "Encrypting…" animation (src/web/encrypting.tsx) and the Link that follows it. */
+  --animate-fade: fade 160ms var(--ease-brand) both;
+  --animate-pop: pop 320ms var(--ease-brand) both;
+  --animate-rise: rise 380ms var(--ease-brand) both;
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes pop {
+    from {
+      opacity: 0;
+      transform: scale(0.4);
+    }
+    60% {
+      transform: scale(1.15);
+    }
+  }
+  --animate-ring: ring 600ms var(--ease-brand) both;
+  @keyframes ring {
+    from {
+      box-shadow: 0 0 0 0 var(--color-pop);
+    }
+    to {
+      box-shadow: 0 0 0 14px transparent;
+    }
+  }
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
 }
 
 /* Dark: the toggle's choice (data-theme, set by /boot.js before first paint), else the system's.
@@ -208,6 +242,7 @@
   }
 }
 @utility ghost {
+  cursor: pointer;
   font-size: 0.88rem;
   text-decoration: none;
   color: var(--color-ink);
@@ -340,5 +375,137 @@
   *::after {
     animation-duration: 0.001ms !important;
     transition-duration: 0.001ms !important;
+  }
+}
+
+/* ---------- the glasses' moods (src/web/logo.tsx) ---------- */
+.logo-frame,
+.logo-eye,
+.logo-shine {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.logo-shade {
+  opacity: 0;
+  transition: opacity 220ms var(--ease-brand);
+}
+.logo-shine {
+  opacity: 0.45;
+  transition: opacity 220ms var(--ease-brand);
+}
+.logo-eye {
+  transition:
+    opacity 180ms var(--ease-brand),
+    transform 260ms var(--ease-brand);
+}
+/* Shades: lenses black out, keyholes duck behind them. */
+.logo[data-mood="shades"] .logo-shade {
+  opacity: 1;
+}
+.logo[data-mood="shades"] .logo-shine {
+  opacity: 0.95;
+}
+.logo[data-mood="shades"] .logo-eye {
+  opacity: 0;
+  transform: scale(0.3);
+}
+.logo[data-mood="peek"] .logo-eye {
+  transform: scale(1.3);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .logo-eye {
+    animation: logo-blink 5.5s infinite;
+  }
+  .logo[data-mood="working"] .logo-eye {
+    animation: logo-turn 720ms var(--ease-brand) infinite;
+  }
+  .logo[data-mood="working"] .logo-frame {
+    animation: logo-wobble 360ms ease-in-out infinite;
+  }
+  .logo[data-mood="shades"] .logo-eye {
+    animation: none;
+  }
+  .logo[data-mood="shades"] .logo-frame {
+    animation: logo-drop 460ms var(--ease-brand) both;
+  }
+  .logo[data-mood="shades"] .logo-shine {
+    animation: logo-ting 700ms 260ms var(--ease-brand) both;
+  }
+  .logo[data-mood="peek"] .logo-eye {
+    animation: logo-pop 520ms var(--ease-brand) both;
+  }
+  .logo[data-mood="peek"] .logo-frame {
+    animation: logo-hop 520ms var(--ease-brand) both;
+  }
+}
+@keyframes logo-blink {
+  0%,
+  93%,
+  100% {
+    transform: scaleY(1);
+  }
+  96.5% {
+    transform: scaleY(0.08);
+  }
+}
+/* A key in a lock: a quarter turn, a little back, home. */
+@keyframes logo-turn {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  40% {
+    transform: rotate(90deg);
+  }
+  70% {
+    transform: rotate(-25deg);
+  }
+}
+@keyframes logo-wobble {
+  0%,
+  100% {
+    transform: rotate(-2.5deg);
+  }
+  50% {
+    transform: rotate(2.5deg) translateY(-3%);
+  }
+}
+/* Sunglasses dropping onto a nose. */
+@keyframes logo-drop {
+  from {
+    transform: translateY(-38%) rotate(-9deg);
+  }
+  55% {
+    transform: translateY(6%) rotate(2deg);
+  }
+}
+@keyframes logo-ting {
+  from {
+    transform: scale(0.2);
+    opacity: 0;
+  }
+  45% {
+    transform: scale(1.5);
+    opacity: 1;
+  }
+}
+@keyframes logo-pop {
+  from {
+    transform: scale(0.3);
+  }
+  55% {
+    transform: scale(1.6);
+  }
+  to {
+    transform: scale(1.3);
+  }
+}
+@keyframes logo-hop {
+  35% {
+    transform: translateY(-22%) rotate(4deg);
+  }
+  70% {
+    transform: translateY(4%) rotate(-1deg);
   }
 }

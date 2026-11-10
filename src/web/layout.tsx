@@ -1,7 +1,7 @@
 import type { ComponentChildren } from "preact"
 import { useEffect } from "preact/hooks"
 import { useLocation } from "preact-iso"
-import { Logo } from "./logo.tsx"
+import { Logo, useMascotMood } from "./logo.tsx"
 import { pageFor } from "./seo.ts"
 import { ThemeToggle } from "./theme-toggle.tsx"
 
@@ -19,6 +19,7 @@ const NAV_LINK = "font-mono text-label uppercase text-muted no-underline hover:t
 export const Layout = ({ children }: { readonly children: ComponentChildren }) => {
   const { path } = useLocation()
   usePageMeta(path)
+  const mood = useMascotMood()
   return (
     <div class="flex min-h-svh flex-col">
       <header class="sticky top-0 z-10 border-b border-line bg-bg/85 backdrop-blur">
@@ -27,7 +28,7 @@ export const Layout = ({ children }: { readonly children: ComponentChildren }) =
             href="/"
             class="flex items-center gap-xs font-display text-title text-ink-strong no-underline"
           >
-            <Logo class="w-11" />
+            <Logo class="w-11" mood={mood} />
             secret
           </a>
           <div class="flex items-center gap-md">
