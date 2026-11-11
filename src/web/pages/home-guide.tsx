@@ -3,6 +3,7 @@
 import type { ComponentChildren } from "preact"
 import { DEFAULT_EXPIRY, EXPIRY_LABEL, Expiry } from "../../shared/expiry.ts"
 import { MAX_SECRET_LABEL } from "../../shared/limits.ts"
+import { SPONSORS_URL } from "../support-note.tsx"
 
 const HOW_TO = [
   [
@@ -76,7 +77,7 @@ const FAQ: ReadonlyArray<readonly [string, ComponentChildren]> = [
         GitHub
       </a>
       . If it helps you, you can{" "}
-      <a class="text-accent-strong underline" href="https://github.com/sponsors/tonytangdev">
+      <a class="text-accent-strong underline" href={SPONSORS_URL}>
         support me on GitHub Sponsors
       </a>
       .

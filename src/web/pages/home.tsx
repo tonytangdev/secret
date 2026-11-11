@@ -9,6 +9,7 @@ import { FIELD_CLASS } from "../field.ts"
 import { Mascot } from "../logo.tsx"
 import { useRun } from "../run.ts"
 import { sendSecret } from "../secret-flow.ts"
+import { SupportNote } from "../support-note.tsx"
 import { HomeGuide } from "./home-guide.tsx"
 import { MAX_SECRET_BYTES, MAX_SECRET_LABEL, secretBytes } from "../../shared/limits.ts"
 
@@ -284,5 +285,6 @@ const Created = ({
         Create another
       </button>
     </div>
+    <SupportNote class="mt-md" />
   </div>
 )

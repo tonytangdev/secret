@@ -4,6 +4,7 @@ import { useLocation } from "preact-iso"
 import { Logo, useMascotMood } from "./logo.tsx"
 import { pageFor } from "./seo.ts"
 import { ThemeToggle } from "./theme-toggle.tsx"
+import { SPONSORS_URL } from "./support-note.tsx"
 
 /** Keeps the tab title and description right as the app navigates between pages. */
 const usePageMeta = (path: string) => {
@@ -58,7 +59,7 @@ export const Layout = ({ children }: { readonly children: ComponentChildren }) =
             <a class="text-accent-strong underline" href="https://github.com/tonytangdev/secret">
               Source code
             </a>
-            <a class="text-accent-strong underline" href="https://github.com/sponsors/tonytangdev">
+            <a class="text-accent-strong underline" href={SPONSORS_URL}>
               Support me
             </a>
           </div>

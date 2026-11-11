@@ -8,6 +8,7 @@ import { FIELD_CLASS } from "../field.ts"
 import { Mascot } from "../logo.tsx"
 import { useRun } from "../run.ts"
 import { type TakenSecret, takeSecret, unlockSecret } from "../secret-flow.ts"
+import { SupportNote } from "../support-note.tsx"
 
 /** Failures that end the Reveal, each with a page of its own. */
 type Ending = "SecretGone" | "MalformedLinkKey" | "DecryptionFailed"
@@ -237,6 +238,7 @@ const Revealed = ({ secret }: { readonly secret: string }) => {
           {shown ? "Hide" : "Show"}
         </button>
       </div>
+      <SupportNote class="mt-lg" />
     </section>
   )
 }

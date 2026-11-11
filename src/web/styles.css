@@ -509,3 +509,70 @@
     transform: translateY(4%) rotate(-1deg);
   }
 }
+
+/* ---------- the coffee cup (src/web/support-note.tsx) ---------- */
+.support-cup {
+  color: var(--color-accent-strong);
+  overflow: visible;
+}
+.support-mug,
+.support-steam path {
+  transform-box: fill-box;
+  transform-origin: bottom center;
+}
+.support-steam {
+  opacity: 0.55;
+}
+@media (prefers-reduced-motion: no-preference) {
+  /* Arrives just after the Link or Secret, so it never competes with them. */
+  .support-note {
+    animation: rise 520ms 900ms var(--ease-brand) both;
+  }
+  .support-mug {
+    animation: cup-clink 800ms 1500ms var(--ease-brand) both;
+  }
+  .support-note:hover .support-mug {
+    animation: cup-clink 800ms var(--ease-brand);
+  }
+  .support-steam {
+    opacity: 1;
+  }
+  .support-steam path {
+    animation: cup-steam 2.6s ease-in-out infinite both;
+  }
+  .support-steam path:nth-child(2) {
+    animation-delay: 0.6s;
+  }
+  .support-steam path:nth-child(3) {
+    animation-delay: 1.2s;
+  }
+}
+/* A little raise of the cup: cheers. */
+@keyframes cup-clink {
+  0%,
+  100% {
+    transform: none;
+  }
+  25% {
+    transform: translateY(-14%) rotate(-12deg);
+  }
+  50% {
+    transform: translateY(-14%) rotate(9deg);
+  }
+  75% {
+    transform: rotate(-4deg);
+  }
+}
+@keyframes cup-steam {
+  0% {
+    opacity: 0;
+    transform: translateY(20%) scaleY(0.6);
+  }
+  40% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-35%) scaleY(1.1);
+  }
+}
