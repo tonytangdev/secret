@@ -46,7 +46,7 @@ const sitemap = (): Plugin => ({
 // - The prerenderer writes /how-it-works as how-it-works/index.html, which Cloudflare would serve
 //   only after a redirect to /how-it-works/. As how-it-works.html it's served at /how-it-works.
 // - preact-iso marks its output with an empty inline <script type="isodata">. main.tsx hydrates
-//   without it, and pages carry no inline scripts.
+//   without it, and pages carry no inline scripts (JSON-LD is data, never run).
 const ISODATA = /<script type="isodata"><\/script>/g
 const finishPages = (): Plugin => ({
   name: "secret:finish-pages",

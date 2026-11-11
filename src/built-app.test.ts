@@ -161,11 +161,24 @@ describe.each(["index.html", "how-it-works.html"])("built %s", (page) => {
     .map((f) => readFileSync(join(clientDir, "assets", f), "utf8"))
     .join("\n")
 
-  it("has no inline scripts or styles in index.html", () => {
+  // JSON-LD is a data block: browsers never run it, so script-src doesn't apply to it.
+  const JSON_LD = '<script type="application/ld+json">'
+  const dataBlocks = [...html.matchAll(/<script type="application\/ld\+json">([^<]*)<\/script>/g)]
+
+  it("has no inline scripts or styles", () => {
     const scripts = [...html.matchAll(/<script\b[^>]*>/g)].map((m) => m[0])
-    expect(scripts.length).toBeGreaterThan(0)
-    for (const tag of scripts) expect(tag).toMatch(/\ssrc="\//)
+    expect(scripts.length).toBeGreaterThan(dataBlocks.length)
+    for (const tag of scripts) if (tag !== JSON_LD) expect(tag).toMatch(/\ssrc="\//)
+    expect(html.split(JSON_LD).length - 1).toBe(dataBlocks.length)
     expect(html).not.toMatch(/<style\b|\sstyle=/)
+  })
+
+  it("carries one block of structured data for search engines, as valid JSON", () => {
+    expect(dataBlocks).toHaveLength(1)
+    const parsed = Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Unknown))(
+      dataBlocks[0]?.[1],
+    )
+    expect(parsed).toMatchObject({ "@context": "https://schema.org" })
   })
 
   it("loads every resource from its own origin", () => {
