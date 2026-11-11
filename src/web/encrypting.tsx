@@ -131,13 +131,13 @@ const Panel = ({
 
 const useGlyphs = () => useState(() => Array.from({ length: GLYPH_COUNT }, glyph).join(""))[0]
 
-/** Covers the form while a Secret is encrypted and stored. `stored`: the server has the ciphertext. */
+/** Stands in for the form while a Secret is encrypted and stored. `stored`: the server has the ciphertext. */
 export const Encrypting = ({ stored }: { readonly stored: boolean }) => {
   const progress = useProgress(SCRAMBLE_MS)
   const { encrypted, waiting } = scrambleFrame(useGlyphs(), progress, glyph)
   const encryptedDone = progress >= 1
   return (
-    <div class="absolute inset-0 z-10 grid animate-fade place-items-center bg-surface p-md sm:p-lg">
+    <div class="animate-fade">
       <Panel
         title={stored ? "Encrypted." : "Encrypting…"}
         mood={stored ? "shades" : "working"}

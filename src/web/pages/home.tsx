@@ -71,8 +71,9 @@ export const Home = () => {
 
   return (
     <>
-      <section class="grid items-start gap-lg lg:grid-cols-[1fr_1.1fr] lg:gap-[4rem]">
-        <div class="lg:sticky lg:top-28">
+      {/* On a phone the form comes right after the headline, and the three steps follow it. */}
+      <section class="grid items-start gap-lg lg:grid-cols-[1fr_1.1fr] lg:grid-rows-[auto_1fr] lg:gap-x-[4rem]">
+        <div>
           <p class="font-mono text-label uppercase text-accent-strong">
             Free · No sign-up · Open source
           </p>
@@ -83,28 +84,8 @@ export const Home = () => {
             Paste a password, an API key or anything private. You get a link that reveals it one
             time, then the secret is gone for good.
           </p>
-          <ol class="mt-lg space-y-sm">
-            {STEPS.map(([title, detail], i) => (
-              <li key={title} class="flex gap-sm">
-                <span class="grid size-8 shrink-0 place-items-center rounded-full bg-teal font-mono text-label text-cream">
-                  {i + 1}
-                </span>
-                <span>
-                  <span class="block font-display text-[1.1rem] font-bold text-ink-strong">
-                    {title}
-                  </span>
-                  <span class="block text-[0.98rem] leading-snug text-muted">{detail}</span>
-                </span>
-              </li>
-            ))}
-          </ol>
-          <p class="mt-md text-[0.98rem]">
-            <a class="text-accent-strong underline" href="/how-it-works">
-              How it works, and what it can't protect
-            </a>
-          </p>
         </div>
-        <div class="card relative isolate overflow-hidden p-md sm:p-lg">
+        <div class="card p-md sm:p-lg lg:col-start-2 lg:row-span-2 lg:row-start-1">
           {state.step === "creating" ? <Encrypting stored={state.stored} /> : null}
           {state.step === "created" ? (
             <Created
@@ -115,10 +96,10 @@ export const Home = () => {
                 setState({ step: "editing", failure: null })
               }}
             />
-          ) : (
+          ) : null}
+          {state.step === "editing" ? (
             <form
               class="space-y-md"
-              inert={state.step === "creating"}
               onSubmit={(event) => {
                 void create(event)
               }}
@@ -139,7 +120,7 @@ export const Home = () => {
                   onInput={(e) => {
                     setPlaintext(e.currentTarget.value)
                   }}
-                  class={`${FIELD_CLASS} resize-y`}
+                  class={`${FIELD_CLASS} resize-y max-sm:h-32`}
                 />
                 <p
                   id="secret-size"
@@ -152,7 +133,7 @@ export const Home = () => {
               </div>
               <ExpiryPicker value={expiry} onChange={setExpiry} />
               <PassphraseField value={passphrase} onInput={setPassphrase} />
-              {state.step === "editing" && state.failure !== null ? (
+              {state.failure !== null ? (
                 <p role="alert" class="text-body text-ink">
                   {FAILURE_COPY[state.failure].body}
                 </p>
@@ -160,12 +141,34 @@ export const Home = () => {
               <button
                 type="submit"
                 class="btn w-full"
-                disabled={state.step === "creating" || tooLarge || plaintext.trim() === ""}
+                disabled={tooLarge || plaintext.trim() === ""}
               >
-                {state.step === "creating" ? "Encrypting…" : "Create link"}
+                Create link
               </button>
             </form>
-          )}
+          ) : null}
+        </div>
+        <div class="lg:col-start-1 lg:row-start-2">
+          <ol class="space-y-sm">
+            {STEPS.map(([title, detail], i) => (
+              <li key={title} class="flex gap-sm">
+                <span class="grid size-8 shrink-0 place-items-center rounded-full bg-teal font-mono text-label text-cream">
+                  {i + 1}
+                </span>
+                <span>
+                  <span class="block font-display text-[1.1rem] font-bold text-ink-strong">
+                    {title}
+                  </span>
+                  <span class="block text-[0.98rem] leading-snug text-muted">{detail}</span>
+                </span>
+              </li>
+            ))}
+          </ol>
+          <p class="mt-md text-[0.98rem]">
+            <a class="text-accent-strong underline" href="/how-it-works">
+              How it works, and what it can't protect
+            </a>
+          </p>
         </div>
       </section>
       <HomeGuide />
