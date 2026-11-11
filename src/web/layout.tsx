@@ -53,7 +53,7 @@ export const Layout = ({ children }: { readonly children: ComponentChildren }) =
             Made by Tony Tang
           </span>
           <div class="flex flex-wrap gap-x-md gap-y-xs">
-            <a class="text-accent-strong underline" href="https://tonytang.dev/apps">
+            <a class="text-accent-strong underline" href="https://tonytang.dev/apps/">
               More apps
             </a>
             <a class="text-accent-strong underline" href="https://github.com/tonytangdev/secret">

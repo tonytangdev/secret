@@ -88,9 +88,9 @@ describe("/how-it-works", () => {
 })
 
 describe("layout", () => {
-  it("links every page to /how-it-works and back to tonytang.dev/apps", () => {
+  it("links every page to /how-it-works and back to tonytang.dev/apps/ (its canonical URL)", () => {
     const html = renderToString(h(Layout, { children: null }))
     expect(html).toContain('href="/how-it-works"')
-    expect(html).toContain('href="https://tonytang.dev/apps"')
+    expect(html).toContain('href="https://tonytang.dev/apps/"')
   })
 })
